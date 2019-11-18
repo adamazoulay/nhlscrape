@@ -1,7 +1,12 @@
 api_url <- "https://statsapi.web.nhl.com/api/v1/"
 
 GetApiJson <- function(call) {
-  r <- httr::GET(paste(api_url, call))
+  request <- paste(api_url, call, sep="")
+  r <- httr::GET(request)
+
+  # Logging
+  log <- paste("[", Sys.time(), "] ", request, sep="")
+  write(log, file="requests.log", append=TRUE)
 
   # Make sure we have the correct data from the GET request
   httr::stop_for_status(r)
@@ -41,6 +46,12 @@ GetGameIdNext <- function(team_id) {
   return(r$teams$nextGameSchedule$dates[[1]]$games[[1]]$gamePk)
 }
 
+GetGameIdPrevious <- function(team_id) {
+  request <- paste("teams/", team_id, "?expand=team.schedule.previous", sep="")
+  r <- GetApiJson(request)
+  return(r$teams$previousGameSchedule$dates[[1]]$games[[1]]$gamePk)
+}
+
 GetGameIdRange <- function(team_id, date_range) {
   request <- paste("schedule?teamId=", team_id, sep="")
   request <- paste(request, "&startDate=", date_range[1], sep="")
@@ -73,4 +84,7 @@ GetGameLiveFeed <- function(game_id) {
   # "event"           "eventCode"       "eventTypeId"     "description"     "secondaryType"   "penaltySeverity"
   # "penaltyMinutes"  "strength"        "gameWinningGoal" "emptyNet"
   results <- plays$result
+
+  feed <- c(results, coords, plays)
+  return(feed)
 }
