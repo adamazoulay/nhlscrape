@@ -104,7 +104,7 @@ GetGameLiveFeed <- function(game_id) {
 GenerateStatsGame <- function(live_feed) {
 
   # Blank df to store results in
-  stats <- data.frame
+  corsi <- data.frame()
 
   # Check all game events
   events <- live_feed$allPlays$result$event
@@ -115,7 +115,9 @@ GenerateStatsGame <- function(live_feed) {
     if (tolower(ev) == "goal" || tolower(ev) == "shot") {
       shooter_id <- paste("ID", feed$allPlays$players[[row]]$player$id[1], sep="")
       shooter_team <- live_feed$players[[shooter_id]]$currentTeam$name
-      print(shooter_team)
-    }
+
+      shot_time <- live_feed$allPlays$about$dateTime[row]
+      print(shot_time)
+      }
   }
 }
