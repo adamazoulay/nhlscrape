@@ -40,8 +40,27 @@ GetTeamId <- function(team_name) {
   stop("Could not find team with name: ", team_name)
 }
 
+GetTeamRoster <- function(team_id) {
+  request <- paste("teams/", team_id, "/roster", sep="")
+  r <- GetApiJson(request)
+  roster <- r$roster
+  return(c(roster$person,
+           data.frame("jerseyNumber" = roster$jerseyNumber, stringsAsFactors = FALSE),
+           roster$position))
+}
+
+GetPlayerStatsYears <- function(player_id, year_range) {
+  request <- paste("people/",
+                   player_id,
+                   "/stats?stats=statsSingleSeason&season=",
+                   year_range,
+                   sep="")
+  r <- GetApiJson(request)
+  return(r$stats$splits[[1]]$stat)
+}
+
 GetGameIdNext <- function(team_id) {
-  request <- paste("teams/", team_id, "?expand=team.schedule.next", sep="")
+  request <- paste("people/", team_id, "?expand=team.schedule.next", sep="")
   r <- GetApiJson(request)
   return(r$teams$nextGameSchedule$dates[[1]]$games[[1]]$gamePk)
 }
@@ -69,22 +88,34 @@ GetGameIdRange <- function(team_id, date_range) {
 GetGameLiveFeed <- function(game_id) {
   request <- paste("game/", game_id, "/feed/live", sep="")
   r <- GetApiJson(request)
-  plays <- r$liveData$plays$allPlays
 
-  # Gives times and other info about each play
-  # "eventIdx"            "eventId"             "period"              "periodType"          "ordinalNum"
-  # "periodTime"          "periodTimeRemaining" "dateTime"            "goals"
-  about <- plays$about
+  # Live data
+  live_data <- r$liveData$plays
 
-  # Gives the location of all events, (0, 0) is center ice
-  # "x" "y"
-  coords <- plays$coordinates
+  # Extra data
+  game_data <- r$gameData
 
-  # Gives the type and descriptions of each event
-  # "event"           "eventCode"       "eventTypeId"     "description"     "secondaryType"   "penaltySeverity"
-  # "penaltyMinutes"  "strength"        "gameWinningGoal" "emptyNet"
-  results <- plays$result
+  live_feed <- c(live_data, game_data)
+  return(live_feed)
+}
 
-  feed <- c(results, coords, plays)
-  return(feed)
+# This is the workhorse method, takes in a game and
+#  moves through all events to calculate the Corsi, Fenwick, etc
+GenerateStatsGame <- function(live_feed) {
+
+  # Blank df to store results in
+  stats <- data.frame
+
+  # Check all game events
+  events <- live_feed$allPlays$result$event
+  for (row in 1:length(events)) {
+    ev <- events[row]
+
+    # All goal and shots can sum the teams shot total
+    if (tolower(ev) == "goal" || tolower(ev) == "shot") {
+      shooter_id <- paste("ID", feed$allPlays$players[[row]]$player$id[1], sep="")
+      shooter_team <- live_feed$players[[shooter_id]]$currentTeam$name
+      print(shooter_team)
+    }
+  }
 }
