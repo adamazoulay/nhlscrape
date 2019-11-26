@@ -1,48 +1,138 @@
+#================================================================
+# Setup
+#================================================================
 api_url <- "https://statsapi.web.nhl.com/api/v1/"
 
-GetApiJson <- function(call) {
-  request <- paste(api_url, call, sep="")
-  r <- httr::GET(request)
-
-  # Logging
-  log <- paste("[", Sys.time(), "] ", request, sep="")
-  write(log, file="requests.log", append=TRUE)
-
-  # Make sure we have the correct data from the GET request
-  httr::stop_for_status(r)
-
-  # Get the text and parse it from JSON to a table
-  txt <- httr::content(r, "text")
-  json <- jsonlite::fromJSON(txt)
-  return(json)
+# Check if a db exists, if not then create an empty db
+db_file <-"nhl.sqlite"
+db_location <- "data_raw/"
+db_path <- paste(db_location, db_file, sep="")
+if (!file.exists(db_path)) {
+  dir.create(db_location, showWarnings = FALSE)
+  file.create(db_path)
 }
 
-GetTeams <- function() {
-  return(GetApiJson("teams"))
+#================================================================
+# Functions
+#================================================================
+
+GetQuery <- function(table, select = "*", conds = "") {
+  conn <- DBI::dbConnect(RSQLite::SQLite(), db_path)
+  query <- paste("SELECT", select, "FROM", table, conds, sep=" ")
+
+  data <- tryCatch(
+    {
+      DBI::dbGetQuery(conn, query)
+    },
+    error=function(cond) {
+      message(paste("'", table, "' not in database, adding from api/htmlscrape", sep=""))
+
+      # Add all players from a roster to the db, checking if we have them already
+      if (table == "players") {
+        request <- paste("teams/", team_id, "/roster", sep="")
+        tmp <- GetApiJson(request)
+
+      }
+    }
+  )
+  DBI::dbDisconnect(conn)
+  return(data)
 }
+
+
+#----------------------------------------------------------------
+# Database manipulation block
+
+# bool: Check if the record is in the db already
+ExistsInDb <- function(table, pk) {
+  conn <- DBI::dbConnect(RSQLite::SQLite(), db_path)
+  query <- paste("SELECT * FROM ", table, " WHERE pk='", pk, "'", sep="")
+  record <- DBI::dbGetQuery(conn, query)
+  DBI::dbDisconnect(conn)
+
+  if (nrow(record) == 0) {
+    return(FALSE)
+  }
+  return(TRUE)
+}
+
+# NULL: Add the dataframe to the database under 'table'
+AddDb <- function(table, df) {
+  # Add all rows to db, checking if the exist already
+  conn <- DBI::dbConnect(RSQLite::SQLite(), db_path)
+
+  # Create the table if it doesn't exist yet (keep 0 rows)
+  if (!DBI::dbExistsTable(conn, table)) {
+    DBI::dbWriteTable(conn, table, df[FALSE,])
+  }
+
+  # Append the row if it doesn't exist yet
+  for (i in 1:nrow(df)) {
+    row <- df[i,]
+    pk <- row$pk
+    if (!ExistsInDb(table, pk)) {
+      DBI::dbWriteTable(conn, table, row, append=TRUE, row.names=FALSE)
+    }
+  }
+  DBI::dbDisconnect(conn)
+
+  message(paste("'", table, "' rows added successfully", sep=""))
+}
+
+# NULL: Add all teams to the database
+AddAllTeamsDb <- function() {
+  df <- jsonlite::flatten(GetApiJson("teams")$teams)
+
+  # Make names db friendly
+  cols <- gsub("\\.", "_", names(df))
+  cols <- gsub("id", "pk", cols)
+  names(df) <- cols
+
+  # Remove duplicate id
+  df <- within(df, rm("franchise_franchiseId"))
+
+  # Add to database
+  AddDb("teams", df)
+}
+
+# NULL: Add the roster for a team_id for season
+AddTeamRoster <- function(team_id, season) {
+  request <- paste("teams/", team_id, "?expand=team.roster&season=", season, sep="")
+  df <- jsonlite::flatten(GetApiJson(request)$teams$roster$roster[[1]])
+
+  # Make names db friendly
+  cols <- gsub("\\.", "_", names(df))
+  names(df) <- cols
+
+  # Make a new col for the pk
+  df$pk <- paste(df$person_id, season, sep="_")
+  df$team_id <- as.integer(team_id)
+
+  # Add to database
+  AddDb("rosters", df)
+}
+
+
+#----------------------------------------------------------------
+# Database retrieval block
 
 GetTeamId <- function(team_name) {
   # Expect name to be either full name or abbreviation
-  team_list <- GetTeams()
-  team_names_full <- team_list$teams$name
-  team_names_abbr <- team_list$teams$abbreviation
-
-  team_id <- match(team_name, team_names_full)
-  if (!is.na(team_id)) {
-    return(team_id)
+  team_id <- rbind(GetQuery("teams",
+                            conds=paste("WHERE name='", team_name, "'", sep="")),
+                   GetQuery("teams",
+                            conds=paste("WHERE abbreviation='", team_name, "'", sep=""))
+  )
+  if (nrow(team_id) == 0) {
+    stop("Could not find team with name: ", team_name)
   }
-
-  team_id <- match(team_name, team_names_abbr)
-  if (!is.na(team_id)) {
-    return(team_id)
-  }
-
-  stop("Could not find team with name: ", team_name)
+  return(team_id$id)
 }
 
-GetTeamRoster <- function(team_id) {
+GetTeamRoster <- function(team_id, year) {
   request <- paste("teams/", team_id, "/roster", sep="")
   r <- GetApiJson(request)
+
   roster <- r$roster
   return(c(roster$person,
            data.frame("jerseyNumber" = roster$jerseyNumber, stringsAsFactors = FALSE),
@@ -99,25 +189,23 @@ GetGameLiveFeed <- function(game_id) {
   return(live_feed)
 }
 
-# This is the workhorse method, takes in a game and
-#  moves through all events to calculate the Corsi, Fenwick, etc
-GenerateStatsGame <- function(live_feed) {
 
-  # Blank df to store results in
-  corsi <- data.frame()
+#----------------------------------------------------------------
+# Scraping block (api and html)
 
-  # Check all game events
-  events <- live_feed$allPlays$result$event
-  for (row in 1:length(events)) {
-    ev <- events[row]
+GetApiJson <- function(call) {
+  request <- paste(api_url, call, sep="")
+  r <- httr::GET(request)
 
-    # All goal and shots can sum the teams shot total
-    if (tolower(ev) == "goal" || tolower(ev) == "shot") {
-      shooter_id <- paste("ID", feed$allPlays$players[[row]]$player$id[1], sep="")
-      shooter_team <- live_feed$players[[shooter_id]]$currentTeam$name
+  # Logging
+  log <- paste("[", Sys.time(), "] ", request, sep="")
+  write(log, file="requests.log", append=TRUE)
 
-      shot_time <- live_feed$allPlays$about$dateTime[row]
-      print(shot_time)
-      }
-  }
+  # Make sure we have the correct data from the GET request
+  httr::stop_for_status(r)
+
+  # Get the text and parse it from JSON to a table
+  txt <- httr::content(r, "text")
+  json <- jsonlite::fromJSON(txt)
+  return(json)
 }
