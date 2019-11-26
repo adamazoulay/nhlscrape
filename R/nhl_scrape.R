@@ -21,7 +21,6 @@ if (!file.exists(db_path)) {
 # Database manipulation block
 
 #' @keywords internal
-#' @return boolean
 #' Check if the record is in the db already
 ExistsInDb <- function(table, pk) {
   conn <- DBI::dbConnect(RSQLite::SQLite(), db_path)
@@ -101,6 +100,63 @@ AddTeamRoster <- function(team_id, season) {
   AddDb("rosters", df)
 }
 
+#' Add all events from a 'game_id' to the 'events' table
+#'
+#' @param game_id Identifying number for the game. Use GetGameIds to find.
+#' @examples
+#' AddGameEvents(2019020357)
+#' AddGameEvents()
+AddGameEvents <- function(game_id) {
+  request <- paste("game/", game_id, "/feed/live", sep="")
+  df <- GetApiJson(request)
+
+  players <- df$liveData$plays$allPlays$players
+  plays <- df$liveData$plays$allPlays
+  plays <- within(plays, rm("players"))
+
+  df_final <- data.frame()
+  for (i in 1:length(players)) {
+    row <- players[[i]]
+
+    if (!is.null(row)) {
+      for (j in 1:nrow(row)) {
+        player <- row[j,]
+        event <- plays[i,]
+
+        # Now combine all info with the game id for the pk
+        df <- jsonlite::flatten(cbind(player, event))
+        cols <- gsub("\\.", "_", names(df))
+        names(df) <- cols
+
+        # Check if we have the seasonTotal field missing
+        if (!("seasonTotal" %in% cols)) {
+          df <- cbind(df, "seasonTotal"=NA)
+        }
+
+        # Finally make the pk field
+        df$pk <- paste(game_id, df$about_eventIdx, df$player_id, sep="_")
+        df_final <- rbind(df_final, df)
+      }
+    } else {
+      event <- plays[i,]
+
+      df <- jsonlite::flatten(event)
+      cols <- gsub("\\.", "_", names(df))
+      names(df) <- cols
+      df$pk <- paste(game_id, df$about_eventIdx, sep="_")
+
+      # Add NA entries so column numbers match
+      df <- cbind(df,
+                  "playerType"=NA,
+                  "player_id"=NA,
+                  "player_fullName"=NA,
+                  "player_link"=NA,
+                  "seasonTotal"=NA)
+      df_final <- rbind(df_final, df)
+    }
+  }
+  AddDb("events", df_final)
+}
 
 #----------------------------------------------------------------
 # Database retrieval block
