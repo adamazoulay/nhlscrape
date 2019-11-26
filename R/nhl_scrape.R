@@ -16,34 +16,13 @@ if (!file.exists(db_path)) {
 # Functions
 #================================================================
 
-GetQuery <- function(table, select = "*", conds = "") {
-  conn <- DBI::dbConnect(RSQLite::SQLite(), db_path)
-  query <- paste("SELECT", select, "FROM", table, conds, sep=" ")
-
-  data <- tryCatch(
-    {
-      DBI::dbGetQuery(conn, query)
-    },
-    error=function(cond) {
-      message(paste("'", table, "' not in database, adding from api/htmlscrape", sep=""))
-
-      # Add all players from a roster to the db, checking if we have them already
-      if (table == "players") {
-        request <- paste("teams/", team_id, "/roster", sep="")
-        tmp <- GetApiJson(request)
-
-      }
-    }
-  )
-  DBI::dbDisconnect(conn)
-  return(data)
-}
-
 
 #----------------------------------------------------------------
 # Database manipulation block
 
-# bool: Check if the record is in the db already
+#' @keywords internal
+#' @return boolean
+#' Check if the record is in the db already
 ExistsInDb <- function(table, pk) {
   conn <- DBI::dbConnect(RSQLite::SQLite(), db_path)
   query <- paste("SELECT * FROM ", table, " WHERE pk='", pk, "'", sep="")
@@ -56,7 +35,8 @@ ExistsInDb <- function(table, pk) {
   return(TRUE)
 }
 
-# NULL: Add the dataframe to the database under 'table'
+#' @keywords internal
+#' Add the dataframe to the database under 'table'
 AddDb <- function(table, df) {
   # Add all rows to db, checking if the exist already
   conn <- DBI::dbConnect(RSQLite::SQLite(), db_path)
@@ -79,7 +59,10 @@ AddDb <- function(table, df) {
   message(paste("'", table, "' rows added successfully", sep=""))
 }
 
-# NULL: Add all teams to the database
+#' Add all teams to the database.
+#'
+#' @examples
+#' AddAllTeamdDb()
 AddAllTeamsDb <- function() {
   df <- jsonlite::flatten(GetApiJson("teams")$teams)
 
@@ -95,7 +78,13 @@ AddAllTeamsDb <- function() {
   AddDb("teams", df)
 }
 
-# NULL: Add the roster for a team_id for season
+#' Add a teams roster to the 'roster' table for 'season'.
+#'
+#' @param team_id Identity number for the team. Use GetTeamId to find.
+#' @param season A year range you want to add.
+#' @examples
+#' AddTeamRoster(10, 20192020)
+#' AddTeamRoster(3, 20142015)
 AddTeamRoster <- function(team_id, season) {
   request <- paste("teams/", team_id, "?expand=team.roster&season=", season, sep="")
   df <- jsonlite::flatten(GetApiJson(request)$teams$roster$roster[[1]])

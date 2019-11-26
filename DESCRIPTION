@@ -13,3 +13,4 @@ Imports:
   httr,
   jsonlite,
   RSQLite
+RoxygenNote: 7.0.1
