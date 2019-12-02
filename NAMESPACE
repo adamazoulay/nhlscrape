@@ -1,5 +1,6 @@
 import(httr)
+import(rvest)
 import(RSQLite)
-importFrom(jsonlite, fromJSON)
+import(jsonlite)
 
 exportPattern("^[[:alpha:]]+")

@@ -1,9 +1,9 @@
 Package: nhlscrape
 Type: Package
-Title: What the Package Does (Title Case)
+Title: Scrapes the NHL api and HTML reports to generate a database for statistical analysis
 Version: 0.1.0
-Author: Who wrote it
-Maintainer: The package maintainer <yourself@somewhere.net>
+Author: Adam Azoulay
+Maintainer: Adam Azoulay <adam1azoulay@gmail.com>
 Description: More about what it does (maybe more than one line)
     Use four spaces when indenting paragraphs within the Description.
 License: What license is it under?
@@ -12,5 +12,6 @@ LazyData: true
 Imports:
   httr,
   jsonlite,
-  RSQLite
+  RSQLite,
+  rvest
 RoxygenNote: 7.0.1

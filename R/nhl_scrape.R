@@ -23,10 +23,8 @@ if (!file.exists(db_path)) {
 #' @keywords internal
 #' Check if the record is in the db already
 ExistsInDb <- function(table, pk) {
-  conn <- DBI::dbConnect(RSQLite::SQLite(), db_path)
   query <- paste("SELECT * FROM ", table, " WHERE pk='", pk, "'", sep="")
-  record <- DBI::dbGetQuery(conn, query)
-  DBI::dbDisconnect(conn)
+  record <- QueryDb(query)
 
   if (nrow(record) == 0) {
     return(FALSE)
@@ -56,6 +54,14 @@ AddDb <- function(table, df) {
   DBI::dbDisconnect(conn)
 
   message(paste("'", table, "' rows added successfully", sep=""))
+}
+
+QueryDb <- function(query) {
+  conn <- DBI::dbConnect(RSQLite::SQLite(), db_path)
+  record <- DBI::dbGetQuery(conn, query)
+  DBI::dbDisconnect(conn)
+
+  return(record)
 }
 
 #' Add all teams to the database.
@@ -163,10 +169,9 @@ AddGameEvents <- function(game_id) {
 
 GetTeamId <- function(team_name) {
   # Expect name to be either full name or abbreviation
-  team_id <- rbind(GetQuery("teams",
-                            conds=paste("WHERE name='", team_name, "'", sep="")),
-                   GetQuery("teams",
-                            conds=paste("WHERE abbreviation='", team_name, "'", sep=""))
+  team_id <- rbind(QueryDb(paste("SELECT * FROM teams WHERE name='", team_name, "'", sep="")),
+                   QueryDb(paste("SELECT * FROM teams WHERE abbreviation='", team_name, "'", sep="")),
+                   QueryDb(paste("SELECT * FROM teams WHERE name_upper='", team_name, "'", sep=""))
   )
   if (nrow(team_id) == 0) {
     stop("Could not find team with name: ", team_name)
@@ -220,18 +225,83 @@ GetGameIdRange <- function(team_id, date_range) {
   return(game_ids)
 }
 
-GetGameLiveFeed <- function(game_id) {
-  request <- paste("game/", game_id, "/feed/live", sep="")
-  r <- GetApiJson(request)
+GetGameLiveFeedHtml <- function(game_id) {
+  # Get years in correct format
+  year <- substring(game_id, 1, 4)
+  next_year <- as.character(as.integer(year) + 1)
+  years <- paste(year, next_year, sep="")
 
-  # Live data
-  live_data <- r$liveData$plays
+  id <- paste("PL", substring(game_id, 5), sep="")
 
-  # Extra data
-  game_data <- r$gameData
+  url <- paste("http://www.nhl.com/scores/htmlreports/", years, "/", id, ".HTM", sep="")
 
-  live_feed <- c(live_data, game_data)
-  return(live_feed)
+  content <- xml2::read_html(url)
+
+  plays_data <- rvest::html_nodes(content, xpath='//*[contains(concat( " ", @class, " " ), concat( " ", "bborder", " " ))]')
+  visitor_abbr <- substring(rvest::html_text(plays_data[7]), 1, 3)
+  home_abbr <- substring(rvest::html_text(plays_data[8]), 1, 3)
+
+  col <- 1
+  row <- c()
+  options(stringsAsFactors=FALSE)
+  data <- data.frame()
+  for (i in 1:length(plays_data)) {
+
+    # If col 4 (time), we need to take only the time elapsed
+    if (col == 4) {
+      str <- as.character(plays_data[i])
+      str <- gsub("<br>", "\n", str)
+      val <- rvest::html_text(xml2::read_html(str))
+      val <- strsplit(val, "\n")[[1]][1]
+    } else if (col == 7) {
+      # Parse players into lists
+      str <- rvest::html_text(plays_data[i])
+      plrs <- strsplit(str, "\r\n\r\n")[[1]]
+
+      away_p1 <- substring(plrs[2], 3)
+      away_p2 <- substring(plrs[5], 3)
+      away_p3 <- substring(plrs[8], 3)
+      away_p4 <- substring(plrs[11], 3)
+      away_p5 <- substring(plrs[14], 3)
+      away_p6 <- substring(plrs[17], 3)
+
+      row <- c(row, away_p1, away_p2, away_p3, away_p4, away_p5)
+      val <- away_p6
+
+    } else if (col == 8) {
+      # Parse players into lists
+      str <- rvest::html_text(plays_data[i])
+      plrs <- strsplit(str, "\r\n\r\n")[[1]]
+
+      home_p1 <- substring(plrs[2], 3)
+      home_p2 <- substring(plrs[5], 3)
+      home_p3 <- substring(plrs[8], 3)
+      home_p4 <- substring(plrs[11], 3)
+      home_p5 <- substring(plrs[14], 3)
+      home_p6 <- substring(plrs[17], 3)
+
+      row <- c(row, home_p1, home_p2, home_p3, home_p4, home_p5)
+      val <- home_p6
+
+    } else {
+      val <- rvest::html_text(plays_data[i])
+    }
+
+    row <- c(row, val)
+
+    # Reset the column number every 8 nodes, and append row
+    col <- col + 1
+    if (col == 9) {
+      data <- rbind(data, row)
+      row <- c()
+      col <- 1
+    }
+  }
+  names(data) <- c("ev_html", "period_html", "strength_htm", "time_elapsed", "event_html", "description_html",
+                   "visitor_p1", "visitor_p2", "visitor_p3", "visitor_p4", "visitor_p5", "visitor_p6",
+                   "home_p1", "home_p2", "home_p3", "home_p4", "home_p5", "home_p6")
+  data <- data[-1,]
+  return(data)
 }
 
 
