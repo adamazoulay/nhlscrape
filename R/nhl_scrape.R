@@ -11,6 +11,7 @@ if (!file.exists(db_path)) {
   dir.create(db_location, showWarnings = FALSE)
   file.create(db_path)
 }
+EVENTS_EMPTY = TRUE
 
 #================================================================
 # Functions
@@ -111,57 +112,112 @@ AddTeamRoster <- function(team_id, season) {
 #' @param game_id Identifying number for the game. Use GetGameIds to find.
 #' @examples
 #' AddGameEvents(2019020357)
-#' AddGameEvents()
-AddGameEvents <- function(game_id) {
-  request <- paste("game/", game_id, "/feed/live", sep="")
-  df <- GetApiJson(request)
+#' AddGameEvents(2019020405)
+AddGameEvents <- function(game_ids) {
+  for (game_id in game_ids) {
+    if (EVENTS_EMPTY == FALSE && nrow(QueryDb(paste("SELECT * FROM events WHERE game_id=", game_id))) > 0) {
+      message(paste("game with game_id:'", game_id,"'already in database", sep=""))
+      next
+    }
+    EVENTS_EMPTY = FALSE
 
-  players <- df$liveData$plays$allPlays$players
-  plays <- df$liveData$plays$allPlays
-  plays <- within(plays, rm("players"))
+    request <- paste("game/", game_id, "/feed/live", sep="")
+    df <- GetApiJson(request)
 
-  df_final <- data.frame()
-  for (i in 1:length(players)) {
-    row <- players[[i]]
+    players <- df$liveData$plays$allPlays$players
+    plays <- df$liveData$plays$allPlays
+    plays <- within(plays, rm("players"))
+    player_list <- df$gameData$players
 
-    if (!is.null(row)) {
-      for (j in 1:nrow(row)) {
-        player <- row[j,]
+    home_abbr <- df$gameData$teams$home$triCode
+    visitor_abbr <- df$gameData$teams$away$triCode
+
+    # We need to get the html report of the game so we an tell who was on the ice on any given play
+    # All we need to do is match the times to any time in the report and insert the players
+    html_report <- GetGameLiveFeedHtml(game_id)
+
+    df_final <- data.frame()
+    for (i in 1:length(players)) {
+      row <- players[[i]]
+
+      if (!is.null(row)) {
+        for (j in 1:nrow(row)) {
+          player <- row[j,]
+          event <- plays[i,]
+
+          # Now combine all info with the game id for the pk
+          df <- jsonlite::flatten(cbind(player, event))
+          cols <- gsub("\\.", "_", names(df))
+          names(df) <- cols
+
+          # Check if we have the seasonTotal field missing
+          if (!("seasonTotal" %in% cols)) {
+            df <- cbind(df, "seasonTotal"=NA)
+          }
+
+          # Finally make the pk field
+          df$pk <- paste(game_id, df$about_eventIdx, df$player_id, sep="_")
+
+          # Append player current team id for ident
+          player_id_num <- paste("ID", row$player$id[[j]], sep="")
+          player_team_id <- player_list[[player_id_num]]$currentTeam$id
+          df <- cbind(df, "player_team_id"=player_team_id)
+
+          # Get time stamp for player on ice identification
+          period <- df$about_period
+          time_period <- df$about_periodTime
+          # Remove first zero to match html format
+          if (substring(time_period, 1, 1) == "0"){
+            time_period <- substring(time_period, 2)
+          }
+          tmp_event <- subset(html_report, period_html==period & time_elapsed==time_period)
+          # Select last row
+          tmp_row <- tmp_event[nrow(tmp_event),]
+
+          # Add each player id to the current row
+          df <- cbind(df, "players_on_ice"=paste(
+                      GetPlayerIdFromNumber(tmp_row$visitor_p1, player_list, visitor_abbr),
+                      GetPlayerIdFromNumber(tmp_row$visitor_p2, player_list, visitor_abbr),
+                      GetPlayerIdFromNumber(tmp_row$visitor_p3, player_list, visitor_abbr),
+                      GetPlayerIdFromNumber(tmp_row$visitor_p4, player_list, visitor_abbr),
+                      GetPlayerIdFromNumber(tmp_row$visitor_p5, player_list, visitor_abbr),
+                      GetPlayerIdFromNumber(tmp_row$visitor_p6, player_list, visitor_abbr),
+                      GetPlayerIdFromNumber(tmp_row$home_p1, player_list, home_abbr),
+                      GetPlayerIdFromNumber(tmp_row$home_p2, player_list, home_abbr),
+                      GetPlayerIdFromNumber(tmp_row$home_p3, player_list, home_abbr),
+                      GetPlayerIdFromNumber(tmp_row$home_p4, player_list, home_abbr),
+                      GetPlayerIdFromNumber(tmp_row$home_p5, player_list, home_abbr),
+                      GetPlayerIdFromNumber(tmp_row$home_p6, player_list, home_abbr), sep=",") )
+          df_final <- rbind(df_final, df)
+
+        }
+      } else {
         event <- plays[i,]
 
-        # Now combine all info with the game id for the pk
-        df <- jsonlite::flatten(cbind(player, event))
+        df <- jsonlite::flatten(event)
         cols <- gsub("\\.", "_", names(df))
         names(df) <- cols
+        df$pk <- paste(game_id, df$about_eventIdx, sep="_")
 
-        # Check if we have the seasonTotal field missing
-        if (!("seasonTotal" %in% cols)) {
-          df <- cbind(df, "seasonTotal"=NA)
-        }
-
-        # Finally make the pk field
-        df$pk <- paste(game_id, df$about_eventIdx, df$player_id, sep="_")
+        # Add NA entries so column numbers match
+        df <- cbind(df,
+                    "playerType"=NA,
+                    "player_id"=NA,
+                    "player_team_id"=NA,
+                    "player_fullName"=NA,
+                    "player_link"=NA,
+                    "seasonTotal"=NA,
+                    "players_on_ice"=NA)
         df_final <- rbind(df_final, df)
       }
-    } else {
-      event <- plays[i,]
 
-      df <- jsonlite::flatten(event)
-      cols <- gsub("\\.", "_", names(df))
-      names(df) <- cols
-      df$pk <- paste(game_id, df$about_eventIdx, sep="_")
-
-      # Add NA entries so column numbers match
-      df <- cbind(df,
-                  "playerType"=NA,
-                  "player_id"=NA,
-                  "player_fullName"=NA,
-                  "player_link"=NA,
-                  "seasonTotal"=NA)
-      df_final <- rbind(df_final, df)
     }
+    # Finally, add game_id column
+    df_final <- cbind(df_final, game_id=rep(game_id, nrow(df_final)))
+
+    AddDb("events", df_final)
+    message(paste("for game_id:'", game_id, "'", sep=""))
   }
-  AddDb("events", df_final)
 }
 
 #----------------------------------------------------------------
@@ -211,6 +267,7 @@ GetGameIdPrevious <- function(team_id) {
   return(r$teams$previousGameSchedule$dates[[1]]$games[[1]]$gamePk)
 }
 
+# Date format "yyyy-mm-dd"
 GetGameIdRange <- function(team_id, date_range) {
   request <- paste("schedule?teamId=", team_id, sep="")
   request <- paste(request, "&startDate=", date_range[1], sep="")
@@ -303,6 +360,48 @@ GetGameLiveFeedHtml <- function(game_id) {
   data <- data[-1,]
   return(data)
 }
+
+GetPlayerIdFromNumber <- function(number, player_list, team_abbr) {
+  player_id <- NA
+  if (is.na(number)) {
+    return(player_id)
+  }
+  for (player in player_list) {
+    if (number == player$primaryNumber & team_abbr == player$currentTeam$triCode) {
+      player_id <- player$id
+    }
+  }
+  return(player_id)
+}
+
+GetPlayerCorsi <- function(player_id, game_ids, team_id) {
+  corsi_for <- 0
+  corsi_against <- 0
+
+  for (game_id in game_ids) {
+    query <- paste("SELECT * FROM events WHERE game_id=", game_id,
+                   " AND playerType='Shooter'",
+                   " AND players_on_ice LIKE '%", player_id, "%'",
+                   " AND player_team_id='", team_id, "'",
+                   sep="")
+    rows <- QueryDb(query)
+    corsi_for <- corsi_for + nrow(rows)
+
+    query <- paste("SELECT * FROM events WHERE player_id!=", player_id,
+                   " AND game_id=", game_id,
+                   " AND playerType='Shooter'",
+                   " AND players_on_ice LIKE '%", player_id, "%'",
+                   " AND player_team_id!='", team_id, "'",
+                   sep="")
+    rows <- QueryDb(query)
+    corsi_against <- corsi_against + nrow(rows)
+  }
+
+  corsi <- corsi_for - corsi_against
+  return(c(corsi_for, corsi_against, corsi))
+}
+
+
 
 
 #----------------------------------------------------------------
