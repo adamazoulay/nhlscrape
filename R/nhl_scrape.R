@@ -171,8 +171,8 @@ AddGameEvents <- function(game_ids) {
             time_period <- substring(time_period, 2)
           }
           tmp_event <- subset(html_report, period_html==period & time_elapsed==time_period)
-          # Select last row
-          tmp_row <- tmp_event[nrow(tmp_event),]
+          # Select first row
+          tmp_row <- tmp_event[1,]
 
           # Add each player id to the current row
           df <- cbind(df, "players_on_ice"=paste(
@@ -268,10 +268,10 @@ GetGameIdPrevious <- function(team_id) {
 }
 
 # Date format "yyyy-mm-dd"
-GetGameIdRange <- function(team_id, date_range) {
+GetGameIdRange <- function(team_id, start_date, end_date) {
   request <- paste("schedule?teamId=", team_id, sep="")
-  request <- paste(request, "&startDate=", date_range[1], sep="")
-  request <- paste(request, "&endDate=", date_range[2], sep="")
+  request <- paste(request, "&startDate=", start_date, sep="")
+  request <- paste(request, "&endDate=", end_date, sep="")
   r <- GetApiJson(request)
 
   game_ids <- c()
@@ -375,30 +375,64 @@ GetPlayerIdFromNumber <- function(number, player_list, team_abbr) {
 }
 
 GetPlayerCorsi <- function(player_id, game_ids, team_id) {
-  corsi_for <- 0
-  corsi_against <- 0
+
+  corsi <- data.frame(matrix(ncol = 3, nrow = 0))
+  corsi_for_all <- 0
+  corsi_against_all <- 0
+  corsi_for_even <- 0
+  corsi_against_even <- 0
 
   for (game_id in game_ids) {
+    # CF all situations
     query <- paste("SELECT * FROM events WHERE game_id=", game_id,
-                   " AND playerType='Shooter'",
+                   " AND (playerType='Shooter' OR playerType='Scorer')",
                    " AND players_on_ice LIKE '%", player_id, "%'",
                    " AND player_team_id='", team_id, "'",
                    sep="")
     rows <- QueryDb(query)
-    corsi_for <- corsi_for + nrow(rows)
+    corsi_for_all <- corsi_for_all + nrow(rows)
 
+    # CF in even strength situations
+    for (i in 1:nrow(rows)) {
+      if(i == 0) {
+        next
+      }
+      plrs <- strsplit(rows[i,]$players_on_ice, ",")[[1]]
+      plrs <- setdiff(plrs, "NA")
+      if (length(plrs) == 12) {
+        corsi_for_even <- corsi_for_even + 1
+      }
+    }
+
+    # CA in all situations
     query <- paste("SELECT * FROM events WHERE player_id!=", player_id,
                    " AND game_id=", game_id,
-                   " AND playerType='Shooter'",
+                   " AND (playerType='Shooter' OR playerType='Scorer')",
                    " AND players_on_ice LIKE '%", player_id, "%'",
                    " AND player_team_id!='", team_id, "'",
                    sep="")
     rows <- QueryDb(query)
-    corsi_against <- corsi_against + nrow(rows)
+    corsi_against_all <- corsi_against_all + nrow(rows)
+
+    # CA at even strength
+    for (i in 1:nrow(rows)) {
+      if (i == 0) {
+        next
+      }
+      plrs <- strsplit(rows[i,]$players_on_ice, ",")[[1]]
+      plrs <- setdiff(plrs, "NA")
+      if (length(plrs) == 12) {
+        corsi_against_even <- corsi_against_even + 1
+      }
+    }
   }
 
-  corsi <- corsi_for - corsi_against
-  return(c(corsi_for, corsi_against, corsi))
+  corsi_all <- corsi_for_all - corsi_against_all
+  corsi_even <- corsi_for_even - corsi_against_even
+  corsi <- rbind(corsi, c(corsi_for_all, corsi_against_all, corsi_all), c(corsi_for_even, corsi_against_even, corsi_even))
+  names(corsi) <- c("CF", "CA", "C")
+  rownames(corsi) <- c("All_situations", "Even_strength")
+  return(corsi)
 }
 
 
