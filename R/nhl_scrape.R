@@ -124,10 +124,16 @@ AddGameEvents <- function(game_ids) {
     request <- paste("game/", game_id, "/feed/live", sep="")
     df <- GetApiJson(request)
 
+    # Need this for constant roster data
+    request <- paste("game/", game_id, "/boxscore", sep="")
+    boxscore <- GetApiJson(request)
+    home_roster <- boxscore$teams$home$players
+    away_roster <- boxscore$teams$away$players
+
+
     players <- df$liveData$plays$allPlays$players
     plays <- df$liveData$plays$allPlays
     plays <- within(plays, rm("players"))
-    player_list <- df$gameData$players
 
     home_abbr <- df$gameData$teams$home$triCode
     visitor_abbr <- df$gameData$teams$away$triCode
@@ -159,8 +165,9 @@ AddGameEvents <- function(game_ids) {
           df$pk <- paste(game_id, df$about_eventIdx, df$player_id, sep="_")
 
           # Append player current team id for ident
+          player_list <- c(home_roster, away_roster)
           player_id_num <- paste("ID", row$player$id[[j]], sep="")
-          player_team_id <- player_list[[player_id_num]]$currentTeam$id
+          player_team_id <- player_list[[player_id_num]]$person$currentTeam$id
           df <- cbind(df, "player_team_id"=player_team_id)
 
           # Get time stamp for player on ice identification
@@ -176,18 +183,23 @@ AddGameEvents <- function(game_ids) {
 
           # Add each player id to the current row
           df <- cbind(df, "players_on_ice"=paste(
-                      GetPlayerIdFromNumber(tmp_row$visitor_p1, player_list, visitor_abbr),
-                      GetPlayerIdFromNumber(tmp_row$visitor_p2, player_list, visitor_abbr),
-                      GetPlayerIdFromNumber(tmp_row$visitor_p3, player_list, visitor_abbr),
-                      GetPlayerIdFromNumber(tmp_row$visitor_p4, player_list, visitor_abbr),
-                      GetPlayerIdFromNumber(tmp_row$visitor_p5, player_list, visitor_abbr),
-                      GetPlayerIdFromNumber(tmp_row$visitor_p6, player_list, visitor_abbr),
-                      GetPlayerIdFromNumber(tmp_row$home_p1, player_list, home_abbr),
-                      GetPlayerIdFromNumber(tmp_row$home_p2, player_list, home_abbr),
-                      GetPlayerIdFromNumber(tmp_row$home_p3, player_list, home_abbr),
-                      GetPlayerIdFromNumber(tmp_row$home_p4, player_list, home_abbr),
-                      GetPlayerIdFromNumber(tmp_row$home_p5, player_list, home_abbr),
-                      GetPlayerIdFromNumber(tmp_row$home_p6, player_list, home_abbr), sep=",") )
+                      GetPlayerIdFromNumber(tmp_row$visitor_p1, away_roster),
+                      GetPlayerIdFromNumber(tmp_row$visitor_p2, away_roster),
+                      GetPlayerIdFromNumber(tmp_row$visitor_p3, away_roster),
+                      GetPlayerIdFromNumber(tmp_row$visitor_p4, away_roster),
+                      GetPlayerIdFromNumber(tmp_row$visitor_p5, away_roster),
+                      GetPlayerIdFromNumber(tmp_row$visitor_p6, away_roster),
+                      GetPlayerIdFromNumber(tmp_row$home_p1, home_roster),
+                      GetPlayerIdFromNumber(tmp_row$home_p2, home_roster),
+                      GetPlayerIdFromNumber(tmp_row$home_p3, home_roster),
+                      GetPlayerIdFromNumber(tmp_row$home_p4, home_roster),
+                      GetPlayerIdFromNumber(tmp_row$home_p5, home_roster),
+                      GetPlayerIdFromNumber(tmp_row$home_p6, home_roster), sep=",") )
+
+          # Add goalie booleans from home and visitor
+          df <- cbind(df, "home_goalie"=tmp_row$home_goalie)
+          df <- cbind(df, "visitor_goalie"=tmp_row$visitor_goalie)
+
           df_final <- rbind(df_final, df)
 
         }
@@ -207,7 +219,9 @@ AddGameEvents <- function(game_ids) {
                     "player_fullName"=NA,
                     "player_link"=NA,
                     "seasonTotal"=NA,
-                    "players_on_ice"=NA)
+                    "players_on_ice"=NA,
+                    "home_goalie"=FALSE,
+                    "visitor_goalie"=FALSE)
         df_final <- rbind(df_final, df)
       }
 
@@ -282,6 +296,114 @@ GetGameIdRange <- function(team_id, start_date, end_date) {
   return(game_ids)
 }
 
+GetPlayerIdFromNumber <- function(number, player_list) {
+  player_id <- NA
+  if (is.na(number)) {
+    return(player_id)
+  }
+  for (player in player_list) {
+    if (number == player$jerseyNumber) {
+      player_id <- player$person$id
+    }
+  }
+  return(player_id)
+}
+
+GetPlayerCorsi <- function(player_id, game_ids, team_id) {
+
+  corsi <- data.frame(matrix(ncol = 3, nrow = 0))
+  corsi_for_all <- 0
+  corsi_against_all <- 0
+  corsi_for_even <- 0
+  corsi_against_even <- 0
+
+  for (game_id in game_ids) {
+    # CF all situations
+    query <- paste("SELECT * FROM events WHERE game_id=", game_id,
+                   " AND (playerType='Shooter' OR playerType='Scorer')",
+                   " AND players_on_ice LIKE '%", player_id, "%'",
+                   " AND player_team_id='", team_id, "'",
+                   sep="")
+    rows <- QueryDb(query)
+    corsi_for_all <- corsi_for_all + nrow(rows)
+
+    # CF in even strength situations
+    for (i in 1:nrow(rows)) {
+      if(i == 0) {
+        next
+      }
+      row <- rows[i,]
+
+      # Goalie in net check
+      home_goalie <- as.logical(row$home_goalie)
+      visitor_goalie <- as.logical(row$visitor_goalie)
+
+      plrs <- strsplit(row$players_on_ice, ",")[[1]]
+      plrs <- setdiff(plrs, "NA")
+      if (length(plrs) == 12 && home_goalie && visitor_goalie) {
+        corsi_for_even <- corsi_for_even + 1
+      }
+    }
+
+    # CA in all situations
+    query <- paste("SELECT * FROM events WHERE player_id!=", player_id,
+                   " AND game_id=", game_id,
+                   " AND (playerType='Shooter' OR playerType='Scorer')",
+                   " AND players_on_ice LIKE '%", player_id, "%'",
+                   " AND player_team_id!='", team_id, "'",
+                   sep="")
+    rows <- QueryDb(query)
+    corsi_against_all <- corsi_against_all + nrow(rows)
+
+    # CA at even strength
+    for (i in 1:nrow(rows)) {
+      if(i == 0) {
+        next
+      }
+      row <- rows[i,]
+
+      # Goalie in net check
+      home_goalie <- as.logical(row$home_goalie)
+      visitor_goalie <- as.logical(row$visitor_goalie)
+
+      plrs <- strsplit(row$players_on_ice, ",")[[1]]
+      plrs <- setdiff(plrs, "NA")
+      if (length(plrs) == 12 && home_goalie && visitor_goalie) {
+        corsi_against_even <- corsi_against_even + 1
+      }
+    }
+  }
+
+  corsi_all <- corsi_for_all - corsi_against_all
+  corsi_even <- corsi_for_even - corsi_against_even
+  corsi <- rbind(corsi, c(corsi_for_all, corsi_against_all, corsi_all), c(corsi_for_even, corsi_against_even, corsi_even))
+  names(corsi) <- c("CF", "CA", "C")
+  rownames(corsi) <- c("All_situations", "Even_strength")
+  return(corsi)
+}
+
+
+
+#----------------------------------------------------------------
+# Scraping block (api and html)
+
+GetApiJson <- function(call) {
+  request <- paste(api_url, call, sep="")
+  r <- httr::GET(request)
+
+  # Logging
+  log <- paste("[", Sys.time(), "] ", request, sep="")
+  write(log, file="requests.log", append=TRUE)
+
+  # Make sure we have the correct data from the GET request
+  httr::stop_for_status(r)
+
+  # Get the text and parse it from JSON to a table
+  txt <- httr::content(r, "text")
+  json <- jsonlite::fromJSON(txt)
+  return(json)
+}
+
 GetGameLiveFeedHtml <- function(game_id) {
   # Get years in correct format
   year <- substring(game_id, 1, 4)
@@ -322,7 +444,19 @@ GetGameLiveFeedHtml <- function(game_id) {
       away_p5 <- substring(plrs[14], 3)
       away_p6 <- substring(plrs[17], 3)
 
-      row <- c(row, away_p1, away_p2, away_p3, away_p4, away_p5)
+      # Add a check for the goalies on the ice for 5v5 stat calculations
+      goalie <- FALSE
+      check <- plrs[3] == "G" ||
+        plrs[6] == "G" ||
+        plrs[9] == "G" ||
+        plrs[12] == "G" ||
+        plrs[15] == "G" ||
+        plrs[18] == "G"
+      if (!is.na(check) && check) {
+        goalie <- TRUE
+      }
+
+      row <- c(row, goalie, away_p1, away_p2, away_p3, away_p4, away_p5)
       val <- away_p6
 
     } else if (col == 8) {
@@ -337,7 +471,19 @@ GetGameLiveFeedHtml <- function(game_id) {
       home_p5 <- substring(plrs[14], 3)
       home_p6 <- substring(plrs[17], 3)
 
-      row <- c(row, home_p1, home_p2, home_p3, home_p4, home_p5)
+      # Add a check for the goalies on the ice for 5v5 stat calculations
+      goalie <- FALSE
+      check <- plrs[3] == "G" ||
+        plrs[6] == "G" ||
+        plrs[9] == "G" ||
+        plrs[12] == "G" ||
+        plrs[15] == "G" ||
+        plrs[18] == "G"
+      if (!is.na(check) && check) {
+        goalie <- TRUE
+      }
+
+      row <- c(row, goalie, home_p1, home_p2, home_p3, home_p4, home_p5)
       val <- home_p6
 
     } else {
@@ -355,105 +501,8 @@ GetGameLiveFeedHtml <- function(game_id) {
     }
   }
   names(data) <- c("ev_html", "period_html", "strength_htm", "time_elapsed", "event_html", "description_html",
-                   "visitor_p1", "visitor_p2", "visitor_p3", "visitor_p4", "visitor_p5", "visitor_p6",
-                   "home_p1", "home_p2", "home_p3", "home_p4", "home_p5", "home_p6")
+                   "visitor_goalie", "visitor_p1", "visitor_p2", "visitor_p3", "visitor_p4", "visitor_p5", "visitor_p6",
+                   "home_goalie", "home_p1", "home_p2", "home_p3", "home_p4", "home_p5", "home_p6")
   data <- data[-1,]
   return(data)
-}
-
-GetPlayerIdFromNumber <- function(number, player_list, team_abbr) {
-  player_id <- NA
-  if (is.na(number)) {
-    return(player_id)
-  }
-  for (player in player_list) {
-    if (number == player$primaryNumber & team_abbr == player$currentTeam$triCode) {
-      player_id <- player$id
-    }
-  }
-  return(player_id)
-}
-
-GetPlayerCorsi <- function(player_id, game_ids, team_id) {
-
-  corsi <- data.frame(matrix(ncol = 3, nrow = 0))
-  corsi_for_all <- 0
-  corsi_against_all <- 0
-  corsi_for_even <- 0
-  corsi_against_even <- 0
-
-  for (game_id in game_ids) {
-    # CF all situations
-    query <- paste("SELECT * FROM events WHERE game_id=", game_id,
-                   " AND (playerType='Shooter' OR playerType='Scorer')",
-                   " AND players_on_ice LIKE '%", player_id, "%'",
-                   " AND player_team_id='", team_id, "'",
-                   sep="")
-    rows <- QueryDb(query)
-    corsi_for_all <- corsi_for_all + nrow(rows)
-
-    # CF in even strength situations
-    for (i in 1:nrow(rows)) {
-      if(i == 0) {
-        next
-      }
-      plrs <- strsplit(rows[i,]$players_on_ice, ",")[[1]]
-      plrs <- setdiff(plrs, "NA")
-      if (length(plrs) == 12) {
-        corsi_for_even <- corsi_for_even + 1
-      }
-    }
-
-    # CA in all situations
-    query <- paste("SELECT * FROM events WHERE player_id!=", player_id,
-                   " AND game_id=", game_id,
-                   " AND (playerType='Shooter' OR playerType='Scorer')",
-                   " AND players_on_ice LIKE '%", player_id, "%'",
-                   " AND player_team_id!='", team_id, "'",
-                   sep="")
-    rows <- QueryDb(query)
-    corsi_against_all <- corsi_against_all + nrow(rows)
-
-    # CA at even strength
-    for (i in 1:nrow(rows)) {
-      if (i == 0) {
-        next
-      }
-      plrs <- strsplit(rows[i,]$players_on_ice, ",")[[1]]
-      plrs <- setdiff(plrs, "NA")
-      if (length(plrs) == 12) {
-        corsi_against_even <- corsi_against_even + 1
-      }
-    }
-  }
-
-  corsi_all <- corsi_for_all - corsi_against_all
-  corsi_even <- corsi_for_even - corsi_against_even
-  corsi <- rbind(corsi, c(corsi_for_all, corsi_against_all, corsi_all), c(corsi_for_even, corsi_against_even, corsi_even))
-  names(corsi) <- c("CF", "CA", "C")
-  rownames(corsi) <- c("All_situations", "Even_strength")
-  return(corsi)
-}
-
-
-
-
-#----------------------------------------------------------------
-# Scraping block (api and html)
-
-GetApiJson <- function(call) {
-  request <- paste(api_url, call, sep="")
-  r <- httr::GET(request)
-
-  # Logging
-  log <- paste("[", Sys.time(), "] ", request, sep="")
-  write(log, file="requests.log", append=TRUE)
-
-  # Make sure we have the correct data from the GET request
-  httr::stop_for_status(r)
-
-  # Get the text and parse it from JSON to a table
-  txt <- httr::content(r, "text")
-  json <- jsonlite::fromJSON(txt)
-  return(json)
 }
