@@ -10,5 +10,5 @@ AddAllTeamsDb()
 Add all teams to the database.
 }
 \examples{
-AddAllTeamdDb()
+AddAllTeamsDb()
 }

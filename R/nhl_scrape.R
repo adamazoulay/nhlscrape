@@ -72,7 +72,7 @@ QueryDb <- function(query) {
 #' Add all teams to the database.
 #'
 #' @examples
-#' AddAllTeamdDb()
+#' AddAllTeamsDb()
 AddAllTeamsDb <- function() {
   df <- jsonlite::flatten(GetApiJson("teams")$teams)
 
