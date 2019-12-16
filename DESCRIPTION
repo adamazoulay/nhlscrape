@@ -10,7 +10,7 @@ Maintainer: Adam Azoulay <adam1azoulay@gmail.com>
 URL: https://github.com/adamazoulay/nhlscrape
 BugReports: https://github.com/adamazoulay/nhlscrape/issues
 Description: Add game events to the database file to use for statistical analysis of hockey games. This means we only call the API
-once for each game we add, and we have very fast retrieval of data once games have been added since the data is stored locally. 
+    once for each game we add, and we have very fast retrieval of data once games have been added since the data is stored locally. 
 License: MIT + file LICENSE
 Encoding: UTF-8
 LazyData: true
