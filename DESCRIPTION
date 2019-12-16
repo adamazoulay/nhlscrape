@@ -1,12 +1,17 @@
 Package: nhlscrape
 Type: Package
-Title: Scrapes the NHL api and HTML reports to generate a database for statistical analysis
+Title: Scrapes the NHL API and HTML reports to generate a database for statistical analysis
 Version: 0.1.0
-Author: Adam Azoulay
+Author: Adam Azoulay [aut, cre]
+Authors@R: as.person(c(
+    "Adam Azoulay <adam1azoulay@gmail.com> [aut, cre]"
+  ))
 Maintainer: Adam Azoulay <adam1azoulay@gmail.com>
-Description: More about what it does (maybe more than one line)
-    Use four spaces when indenting paragraphs within the Description.
-License: What license is it under?
+URL: https://github.com/adamazoulay/nhlscrape
+BugReports: https://github.com/adamazoulay/nhlscrape/issues
+Description: Add game events to the database file to use for statistical analysis of hockey games. This means we only call the API
+once for each game we add, and we have very fast retrieval of data once games have been added since the data is stored locally. 
+License: MIT + file LICENSE
 Encoding: UTF-8
 LazyData: true
 Imports:

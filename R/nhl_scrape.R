@@ -17,9 +17,7 @@ EVENTS_EMPTY = TRUE
 # Functions
 #================================================================
 
-
-#----------------------------------------------------------------
-# Database manipulation block
+# Database manipulation block ----------------------------------------------------------------
 
 #' @keywords internal
 #' Check if the record is in the db already
@@ -57,6 +55,12 @@ AddDb <- function(table, df) {
   message(paste("'", table, "' rows added successfully", sep=""))
 }
 
+#' Send a SQL query to the database.
+#'
+#' @param query A string containing the SQL query.
+#' @examples
+#' QueryDb("SELECT * FROM events")
+#' QueryDb("SELECT player_id, player_fullName FROM events WHERE game_id=2019020001")
 QueryDb <- function(query) {
   conn <- DBI::dbConnect(RSQLite::SQLite(), db_path)
   record <- DBI::dbGetQuery(conn, query)
@@ -234,9 +238,18 @@ AddGameEvents <- function(game_ids) {
   }
 }
 
-#----------------------------------------------------------------
-# Database retrieval block
 
+# Database retrieval block ----------------------------------------------------------------
+
+#' Retrieve the team ID using the abbreviation, or full name of the team.
+#'
+#' @param team_name String containing either abbreviation or full name.
+#'
+#' @return Int, team ID number.
+#'
+#' @examples
+#' GetTeamId("TOR")
+#' GetTeamId("Toronto Maple Leafs")
 GetTeamId <- function(team_name) {
   # Expect name to be either full name or abbreviation
   team_id <- rbind(QueryDb(paste("SELECT * FROM teams WHERE name='", team_name, "'", sep="")),
@@ -281,7 +294,16 @@ GetGameIdPrevious <- function(team_id) {
   return(r$teams$previousGameSchedule$dates[[1]]$games[[1]]$gamePk)
 }
 
-# Date format "yyyy-mm-dd"
+#' Gets a list of game ids for team_id in a specific date range.
+#'
+#' @param team_id Team ID number.
+#' @param start_date Starting date of the games, inclusive. Format: "yyyy-mm-dd".
+#' @param end_date Ending date of the games, inclusive. Format: "yyyy-mm-dd".
+#'
+#' @return List of ints, each element is a game ID in selected range.
+#'
+#' @examples
+#' GetGameIdRange(10, "2019-09-30", "2019-12-16")
 GetGameIdRange <- function(team_id, start_date, end_date) {
   request <- paste("schedule?teamId=", team_id, sep="")
   request <- paste(request, "&startDate=", start_date, sep="")
@@ -296,6 +318,8 @@ GetGameIdRange <- function(team_id, start_date, end_date) {
   return(game_ids)
 }
 
+#' @keywords internal
+#' Helper used to get the player id from their jersey number in a specific game.
 GetPlayerIdFromNumber <- function(number, player_list) {
   player_id <- NA
   if (is.na(number)) {
@@ -309,15 +333,43 @@ GetPlayerIdFromNumber <- function(number, player_list) {
   return(player_id)
 }
 
-GetPlayerCorsi <- function(player_id, game_ids, team_id) {
+#' @keywords internal
+#' Helper function for checking if a play is even strength, checks the goalies
+#' and the total player count, returns boolean
+IsEven <- function(row) {
+  # Goalie in net check
+  home_goalie <- as.logical(row$home_goalie)
+  visitor_goalie <- as.logical(row$visitor_goalie)
 
-  corsi <- data.frame(matrix(ncol = 3, nrow = 0))
+  plrs <- strsplit(row$players_on_ice, ",")[[1]]
+  plrs <- setdiff(plrs, "NA")
+  is_even <- length(plrs) == 12 && home_goalie && visitor_goalie
+  return(is_even)
+}
+
+#' WIP - Get advanced statistics for player_id on team_id in a list of games.
+#'
+#' @param player_id Player ID number.
+#' @param game_ids List of game ids to check. Must already be in the database.
+#' @param team_id The ID of the team the player plays for.
+#'
+#' @return Dataframe containing a row of stats for even strength and for all situations.
+#'
+#' @examples
+#' GetPlayerStats(8475166, 2019020001, 10)
+GetPlayerStats <- function(player_id, game_ids, team_id) {
+
+  # Initialize stats df
+  stats <- data.frame(matrix(ncol = 3, nrow = 0))
   corsi_for_all <- 0
   corsi_against_all <- 0
   corsi_for_even <- 0
   corsi_against_even <- 0
 
   for (game_id in game_ids) {
+
+    # Corsi
+    #----------------------------------------------------------------
     # CF all situations
     query <- paste("SELECT * FROM events WHERE game_id=", game_id,
                    " AND (playerType='Shooter' OR playerType='Scorer')",
@@ -334,13 +386,7 @@ GetPlayerCorsi <- function(player_id, game_ids, team_id) {
       }
       row <- rows[i,]
 
-      # Goalie in net check
-      home_goalie <- as.logical(row$home_goalie)
-      visitor_goalie <- as.logical(row$visitor_goalie)
-
-      plrs <- strsplit(row$players_on_ice, ",")[[1]]
-      plrs <- setdiff(plrs, "NA")
-      if (length(plrs) == 12 && home_goalie && visitor_goalie) {
+      if (IsEven(row)) {
         corsi_for_even <- corsi_for_even + 1
       }
     }
@@ -362,31 +408,31 @@ GetPlayerCorsi <- function(player_id, game_ids, team_id) {
       }
       row <- rows[i,]
 
-      # Goalie in net check
-      home_goalie <- as.logical(row$home_goalie)
-      visitor_goalie <- as.logical(row$visitor_goalie)
-
-      plrs <- strsplit(row$players_on_ice, ",")[[1]]
-      plrs <- setdiff(plrs, "NA")
-      if (length(plrs) == 12 && home_goalie && visitor_goalie) {
+      if (IsEven(row)) {
         corsi_against_even <- corsi_against_even + 1
       }
     }
+
+
   }
 
+
+  # Finalize stats df
+  # Corsi
   corsi_all <- corsi_for_all - corsi_against_all
   corsi_even <- corsi_for_even - corsi_against_even
-  corsi <- rbind(corsi, c(corsi_for_all, corsi_against_all, corsi_all), c(corsi_for_even, corsi_against_even, corsi_even))
-  names(corsi) <- c("CF", "CA", "C")
-  rownames(corsi) <- c("All_situations", "Even_strength")
-  return(corsi)
+
+
+  stats <- rbind(stats, c(corsi_for_all, corsi_against_all, corsi_all), c(corsi_for_even, corsi_against_even, corsi_even))
+  names(stats) <- c("CF", "CA", "C")
+  rownames(stats) <- c("All_situations", "Even_strength")
+  return(stats)
 }
 
+# Scraping block (api and html) ----------------------------------------------------------------
 
-
-#----------------------------------------------------------------
-# Scraping block (api and html)
-
+#' @keywords internal
+#' Calls the api with call, returns the html
 GetApiJson <- function(call) {
   request <- paste(api_url, call, sep="")
   r <- httr::GET(request)
@@ -404,6 +450,8 @@ GetApiJson <- function(call) {
   return(json)
 }
 
+#' @keywords internal
+#' Scrapes and returns the html report for game_id
 GetGameLiveFeedHtml <- function(game_id) {
   # Get years in correct format
   year <- substring(game_id, 1, 4)
