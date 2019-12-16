@@ -7,12 +7,12 @@
 AddGameEvents(game_ids)
 }
 \arguments{
-\item{game_id}{Identifying number for the game. Use GetGameIds to find.}
+\item{game_ids}{List of identifying numbers for the game. Use GetGameIds to find.}
 }
 \description{
 Add all events from a 'game_id' to the 'events' table
 }
 \examples{
-AddGameEvents(2019020357)
-AddGameEvents(2019020405)
+AddGameEvents(2019020001)
+
 }

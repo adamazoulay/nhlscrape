@@ -21,4 +21,5 @@ WIP - Get advanced statistics for player_id on team_id in a list of games.
 }
 \examples{
 GetPlayerStats(8475166, 2019020001, 10)
+
 }

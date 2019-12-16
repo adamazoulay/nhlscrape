@@ -1,11 +1,10 @@
 Package: nhlscrape
 Type: Package
-Title: Scrapes the NHL API and HTML reports to generate a database for statistical analysis
+Title: Scrapes the NHL API and HTML Reports to Generate a Database for Statistical Analysis
 Version: 0.1.0
 Author: Adam Azoulay [aut, cre]
-Authors@R: as.person(c(
-    "Adam Azoulay <adam1azoulay@gmail.com> [aut, cre]"
-  ))
+Authors@R: person("Adam", "Azoulay", email = "adam1azoulay@gmail.com",
+                  role = c("aut", "cre"))
 Maintainer: Adam Azoulay <adam1azoulay@gmail.com>
 URL: https://github.com/adamazoulay/nhlscrape
 BugReports: https://github.com/adamazoulay/nhlscrape/issues
@@ -18,5 +17,7 @@ Imports:
   httr,
   jsonlite,
   RSQLite,
-  rvest
+  rvest,
+  DBI,
+  xml2
 RoxygenNote: 7.0.1

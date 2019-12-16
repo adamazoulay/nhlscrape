@@ -14,5 +14,6 @@ Send a SQL query to the database.
 }
 \examples{
 QueryDb("SELECT * FROM events")
-QueryDb("SELECT player_id, player_fullName FROM events WHERE game_id=2019020001")
+QueryDb("SELECT result_description FROM events WHERE game_id=2019020001 AND player_id=8475166")
+
 }

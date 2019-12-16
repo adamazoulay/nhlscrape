@@ -11,4 +11,5 @@ Add all teams to the database.
 }
 \examples{
 AddAllTeamsDb()
+
 }

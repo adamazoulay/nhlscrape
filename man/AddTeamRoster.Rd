@@ -17,4 +17,5 @@ Add a teams roster to the 'roster' table for 'season'.
 \examples{
 AddTeamRoster(10, 20192020)
 AddTeamRoster(3, 20142015)
+
 }

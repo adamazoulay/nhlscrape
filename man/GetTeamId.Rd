@@ -18,4 +18,5 @@ Retrieve the team ID using the abbreviation, or full name of the team.
 \examples{
 GetTeamId("TOR")
 GetTeamId("Toronto Maple Leafs")
+
 }

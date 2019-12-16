@@ -21,4 +21,5 @@ Gets a list of game ids for team_id in a specific date range.
 }
 \examples{
 GetGameIdRange(10, "2019-09-30", "2019-12-16")
+
 }
