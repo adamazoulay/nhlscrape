@@ -223,9 +223,24 @@ GetPlayerStats <- function(player_id, game_ids, team_id) {
     rows <- rows[apply(rows, 1, IsEven),]
     CA_even <- CA_even + nrow(rows)
 
+
+
     # Shots
     #----------------------------------------------------------------
-    # Shots All Situations
+
+    # ShotsFor All Situations
+    query <- paste("SELECT * FROM events WHERE game_id=", game_id,
+                   " AND player_id=", player_id,
+                   " AND playerType='Shooter'",
+                   " AND (result_eventTypeId='SHOT' OR result_eventTypeId='GOAL')",
+                   sep="")
+    rows <- QueryDb(query)
+    SF_all <- SF_all + nrow(rows)
+
+    # ShotsFor in even strength
+    rows <- rows[apply(rows, 1, IsEven),]
+    SF_even <- SF_even + nrow(rows)
+
 
   }
 
@@ -235,6 +250,8 @@ GetPlayerStats <- function(player_id, game_ids, team_id) {
   corsi_all <- CF_all - CA_all
   corsi_even <- CF_even - CA_even
 
+  #ShotsFor
+  shotsfor_all <- SF_all - SF_all
 
   stats <- rbind(stats, c(CF_all, CA_all, corsi_all), c(CF_even, CA_even, corsi_even))
   names(stats) <- c("CF", "CA", "C")
