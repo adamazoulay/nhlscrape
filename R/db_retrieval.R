@@ -202,11 +202,13 @@ IsEven <- function(row) {
 GetPlayerStats <- function(player_id, game_ids, team_id) {
 
   # Initialize stats df
-  stats <- data.frame(matrix(ncol = 3, nrow = 0))
+  stats <- data.frame(matrix(ncol = 4, nrow = 0))
   CF_all <- 0
   CA_all <- 0
   CF_even <- 0
   CA_even <- 0
+  SF_all <- 0
+  SF_even <- 0
 
   for (game_id in game_ids) {
 
@@ -244,8 +246,9 @@ GetPlayerStats <- function(player_id, game_ids, team_id) {
     # ShotsFor All Situations
     query <- paste("SELECT * FROM events WHERE game_id=", game_id,
                    " AND player_id=", player_id,
-                   " AND playerType='Shooter'",
+                   " AND (playerType='Shooter' OR playerType='Scorer')",
                    " AND (result_eventTypeId='SHOT' OR result_eventTypeId='GOAL')",
+                   " AND about_periodType!='SHOOTOUT'",
                    sep="")
     rows <- QueryDb(query)
     SF_all <- SF_all + nrow(rows)
@@ -262,11 +265,9 @@ GetPlayerStats <- function(player_id, game_ids, team_id) {
   corsi_all <- CF_all - CA_all
   corsi_even <- CF_even - CA_even
 
-  #ShotsFor
-  shotsfor_all <- SF_all - SF_all
 
-  stats <- rbind(stats, c(CF_all, CA_all, corsi_all), c(CF_even, CA_even, corsi_even))
-  names(stats) <- c("CF", "CA", "C")
+  stats <- rbind(stats, c(CF_all, CA_all, corsi_all, SF_all), c(CF_even, CA_even, corsi_even, SF_even))
+  names(stats) <- c("CF", "CA", "C", "SF")
   rownames(stats) <- c("All_situations", "Even_strength")
   return(stats)
 }
