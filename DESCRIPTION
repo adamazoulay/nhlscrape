@@ -1,6 +1,7 @@
 Package: nhlscrape
 Type: Package
-Title: Scrapes the NHL API and HTML Reports to Generate a Database for Statistical Analysis
+Title: Scrapes the NHL API and HTML Reports to Generate a Database for
+        Statistical Analysis
 Version: 0.1.0
 Author: Adam Azoulay [aut, cre]
 Authors@R: person("Adam", "Azoulay", email = "adam1azoulay@gmail.com",
@@ -13,11 +14,7 @@ Description: Add game events to the database file to use for statistical analysi
 License: MIT + file LICENSE
 Encoding: UTF-8
 LazyData: true
-Imports:
-  httr,
-  jsonlite,
-  RSQLite,
-  rvest,
-  DBI,
-  xml2
+Imports: httr, jsonlite, RSQLite, rvest, DBI, xml2
 RoxygenNote: 7.0.1
+NeedsCompilation: no
+Packaged: 2019-12-17 00:43:27 UTC; Adam

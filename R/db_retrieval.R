@@ -1,32 +1,56 @@
-#================================================================
-# Database Setup
-#================================================================
-# Check if a db exists, if not then create an empty db
-db_filename <-"nhl.sqlite"
-cur_dir <- getwd()
-db_location <- paste(cur_dir, "/data_raw/", sep="")
-db_file <- paste(db_location, db_filename, sep="")
-if (!file.exists(db_file)) {
-  dir.create(db_location, showWarnings = FALSE)
-  file.create(db_file)
-}
-EVENTS_EMPTY = TRUE
-
-
 #' Send a SQL query to the database.
 #'
 #' @param query A string containing the SQL query.
+#'
 #' @examples
 #' QueryDb("SELECT * FROM events")
 #' QueryDb("SELECT result_description FROM events WHERE game_id=2019020001 AND player_id=8475166")
 #'
+#' @return Dataframe containing the SQL query result.
+#'
 #' @export
 QueryDb <- function(query) {
-  conn <- DBI::dbConnect(RSQLite::SQLite(), db_file)
+  conn <- DBI::dbConnect(RSQLite::SQLite(), getOption("db_file"))
   record <- DBI::dbGetQuery(conn, query)
   DBI::dbDisconnect(conn)
 
   return(record)
+}
+
+#' Returns the current path to the database file.
+#'
+#' @examples
+#' GetDbPath()
+#'
+#' @return String containing the path to the database.
+#'
+#' @export
+GetDbPath <- function() {
+  return(getOption("db_file"))
+}
+
+#' Sets the current path to the database file.
+#'
+#' @param db_path A string containing the path to the db file.
+#'
+#' @examples
+#' SetDbPath(system.file("extdata", "nhl.sqlite", package = "nhlscrape"))
+#'
+#' @return String containing the path to the database.
+#'
+#' @export
+SetDbPath <- function(db_path) {
+  return(options(db_file=db_path))
+}
+
+#' Check if the events table exists, returns boolean
+#' @keywords internal
+EventsExists <- function() {
+  conn <- DBI::dbConnect(RSQLite::SQLite(), getOption("db_file"))
+  result <- DBI::dbListTables(conn)
+  DBI::dbDisconnect(conn)
+
+  return("events" %in% result)
 }
 
 #' Retrieve the team ID using the abbreviation, or full name of the team.
@@ -36,6 +60,7 @@ QueryDb <- function(query) {
 #' @return Int, team ID number.
 #'
 #' @examples
+#' AddAllTeamsDb()
 #' GetTeamId("TOR")
 #' GetTeamId("Toronto Maple Leafs")
 #'
@@ -51,6 +76,7 @@ GetTeamId <- function(team_name) {
   return(team_id$id)
 }
 
+#' @keywords internal
 GetTeamRoster <- function(team_id, year) {
   request <- paste("teams/", team_id, "/roster", sep="")
   r <- GetApiJson(request)
@@ -61,6 +87,7 @@ GetTeamRoster <- function(team_id, year) {
            roster$position))
 }
 
+#' @keywords internal
 GetPlayerStatsYears <- function(player_id, year_range) {
   request <- paste("people/",
                    player_id,
@@ -71,12 +98,14 @@ GetPlayerStatsYears <- function(player_id, year_range) {
   return(r$stats$splits[[1]]$stat)
 }
 
+#' @keywords internal
 GetGameIdNext <- function(team_id) {
   request <- paste("people/", team_id, "?expand=team.schedule.next", sep="")
   r <- GetApiJson(request)
   return(r$teams$nextGameSchedule$dates[[1]]$games[[1]]$gamePk)
 }
 
+#' @keywords internal
 GetGameIdPrevious <- function(team_id) {
   request <- paste("teams/", team_id, "?expand=team.schedule.previous", sep="")
   r <- GetApiJson(request)
@@ -128,11 +157,14 @@ GetPlayerIdFromNumber <- function(number, player_list) {
 #' Helper function for checking if a play is even strength, checks the goalies
 #' and the total player count, returns boolean
 IsEven <- function(row) {
+  if(is.na(row["players_on_ice"])) {
+    return(FALSE)
+  }
   # Goalie in net check
-  home_goalie <- as.logical(row$home_goalie)
-  visitor_goalie <- as.logical(row$visitor_goalie)
+  home_goalie <- as.logical(row["home_goalie"])
+  visitor_goalie <- as.logical(row["visitor_goalie"])
 
-  plrs <- strsplit(row$players_on_ice, ",")[[1]]
+  plrs <- strsplit(row["players_on_ice"], ",")[[1]]
   plrs <- setdiff(plrs, "NA")
   is_even <- length(plrs) == 12 && home_goalie && visitor_goalie
   return(is_even)
@@ -147,6 +179,7 @@ IsEven <- function(row) {
 #' @return Dataframe containing a row of stats for even strength and for all situations.
 #'
 #' @examples
+#' AddGameEvents(2019020001)
 #' GetPlayerStats(8475166, 2019020001, 10)
 #'
 #' @export
@@ -154,10 +187,10 @@ GetPlayerStats <- function(player_id, game_ids, team_id) {
 
   # Initialize stats df
   stats <- data.frame(matrix(ncol = 3, nrow = 0))
-  corsi_for_all <- 0
-  corsi_against_all <- 0
-  corsi_for_even <- 0
-  corsi_against_even <- 0
+  CF_all <- 0
+  CA_all <- 0
+  CF_even <- 0
+  CA_even <- 0
 
   for (game_id in game_ids) {
 
@@ -170,19 +203,11 @@ GetPlayerStats <- function(player_id, game_ids, team_id) {
                    " AND player_team_id='", team_id, "'",
                    sep="")
     rows <- QueryDb(query)
-    corsi_for_all <- corsi_for_all + nrow(rows)
+    CF_all <- CF_all + nrow(rows)
 
     # CF in even strength situations
-    for (i in 1:nrow(rows)) {
-      if(i == 0) {
-        next
-      }
-      row <- rows[i,]
-
-      if (IsEven(row)) {
-        corsi_for_even <- corsi_for_even + 1
-      }
-    }
+    rows <- rows[apply(rows, 1, IsEven),]
+    CF_even <- CF_even + nrow(rows)
 
     # CA in all situations
     query <- paste("SELECT * FROM events WHERE player_id!=", player_id,
@@ -192,31 +217,27 @@ GetPlayerStats <- function(player_id, game_ids, team_id) {
                    " AND player_team_id!='", team_id, "'",
                    sep="")
     rows <- QueryDb(query)
-    corsi_against_all <- corsi_against_all + nrow(rows)
+    CA_all <- CA_all + nrow(rows)
 
     # CA at even strength
-    for (i in 1:nrow(rows)) {
-      if(i == 0) {
-        next
-      }
-      row <- rows[i,]
-
-      if (IsEven(row)) {
-        corsi_against_even <- corsi_against_even + 1
-      }
-    }
+    rows <- rows[apply(rows, 1, IsEven),]
+    CA_even <- CA_even + nrow(rows)
 
 
+
+    # Shots
+    #----------------------------------------------------------------
+    # Shots All Situations
   }
 
 
   # Finalize stats df
   # Corsi
-  corsi_all <- corsi_for_all - corsi_against_all
-  corsi_even <- corsi_for_even - corsi_against_even
+  corsi_all <- CF_all - CA_all
+  corsi_even <- CF_even - CA_even
 
 
-  stats <- rbind(stats, c(corsi_for_all, corsi_against_all, corsi_all), c(corsi_for_even, corsi_against_even, corsi_even))
+  stats <- rbind(stats, c(CF_all, CA_all, corsi_all), c(CF_even, CA_even, corsi_even))
   names(stats) <- c("CF", "CA", "C")
   rownames(stats) <- c("All_situations", "Even_strength")
   return(stats)
