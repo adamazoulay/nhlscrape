@@ -82,6 +82,20 @@ AddTeamRoster <- function(team_id, season) {
   AddDb("rosters", df)
 }
 
+#' @keywords internal
+#' Add the player rosters to the 'players' table, not adding duplicates
+AddRoster <- function(player_list) {
+  player_df <- data.frame()
+  for (player in player_list) {
+    player_row <- data.frame(player[[1]])[,1:7]
+    player_row <- within(player_row, rm("primaryNumber"))
+    player_row <- cbind("pk"=player_row$id, player_row)
+    player_df <- rbind(player_df, player_row)
+  }
+  AddDb("players", player_df)
+}
+
+
 #' Add all events from a 'game_id' to the 'events' table
 #'
 #' @param game_ids List of identifying numbers for the game. Use GetGameIds to find.
@@ -105,7 +119,10 @@ AddGameEvents <- function(game_ids) {
     boxscore <- GetApiJson(request)
     home_roster <- boxscore$teams$home$players
     away_roster <- boxscore$teams$away$players
+    player_list <- c(home_roster, away_roster)
 
+    # Add players to players table
+    AddRoster(player_list)
 
     players <- df$liveData$plays$allPlays$players
     plays <- df$liveData$plays$allPlays
@@ -141,7 +158,6 @@ AddGameEvents <- function(game_ids) {
           df$pk <- paste(game_id, df$about_eventIdx, df$player_id, sep="_")
 
           # Append player current team id for ident
-          player_list <- c(home_roster, away_roster)
           player_id_num <- paste("ID", row$player$id[[j]], sep="")
           player_team_id <- player_list[[player_id_num]]$person$currentTeam$id
           df <- cbind(df, "player_team_id"=player_team_id)
