@@ -9,6 +9,9 @@ QueryDb(query)
 \arguments{
 \item{query}{A string containing the SQL query.}
 }
+\value{
+Dataframe containing the SQL query result.
+}
 \description{
 Send a SQL query to the database.
 }

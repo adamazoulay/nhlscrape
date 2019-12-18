@@ -3,6 +3,7 @@
 export(AddAllTeamsDb)
 export(AddGameEvents)
 export(AddTeamRoster)
+export(GetDbPath)
 export(GetGameIdRange)
 export(GetPlayerStats)
 export(GetTeamId)

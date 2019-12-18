@@ -5,6 +5,8 @@
 #' QueryDb("SELECT * FROM events")
 #' QueryDb("SELECT result_description FROM events WHERE game_id=2019020001 AND player_id=8475166")
 #'
+#' @return Dataframe containing the SQL query result.
+#'
 #' @export
 QueryDb <- function(query) {
   conn <- DBI::dbConnect(RSQLite::SQLite(), getOption("db_file"))
@@ -12,6 +14,30 @@ QueryDb <- function(query) {
   DBI::dbDisconnect(conn)
 
   return(record)
+}
+
+#' Returns the current path to the database file.
+#'
+#' @examples
+#' GetDbPath()
+#'
+#' @return String containing the path to the database.
+#'
+#' @export
+GetDbPath <- function() {
+  return(getOption("db_file"))
+}
+
+#' Sets the current path to the database file.
+#'
+#' @examples
+#' SetDbPath(system.file("extdata", "nhl.sqlite", package = "nhlscrape"))
+#'
+#' @return String containing the path to the database.
+#'
+#' @export
+SetDbPath <- function(db_path) {
+  return(setOption(db_file=db_path))
 }
 
 #' Check if the events table exists, returns boolean
@@ -31,7 +57,6 @@ EventsExists <- function() {
 #' @return Int, team ID number.
 #'
 #' @examples
-#'
 #' AddAllTeamsDb()
 #' GetTeamId("TOR")
 #' GetTeamId("Toronto Maple Leafs")

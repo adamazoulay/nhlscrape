@@ -16,7 +16,6 @@ Int, team ID number.
 Retrieve the team ID using the abbreviation, or full name of the team.
 }
 \examples{
-
 AddAllTeamsDb()
 GetTeamId("TOR")
 GetTeamId("Toronto Maple Leafs")
