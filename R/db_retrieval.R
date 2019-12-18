@@ -67,13 +67,13 @@ EventsExists <- function() {
 #' @export
 GetTeamId <- function(team_name) {
   # Expect name to be either full name or abbreviation
-  team_id <- rbind(QueryDb(paste("SELECT * FROM teams WHERE name='", team_name, "'", sep="")),
-                   QueryDb(paste("SELECT * FROM teams WHERE abbreviation='", team_name, "'", sep=""))
+  team_id <- rbind(QueryDb(paste("SELECT * FROM teams WHERE UPPER(name)='", toupper(team_name), "'", sep="")),
+                   QueryDb(paste("SELECT * FROM teams WHERE UPPER(abbreviation)='", toupper(team_name), "'", sep=""))
   )
   if (nrow(team_id) == 0) {
     stop("Could not find team with name: ", team_name)
   }
-  return(team_id$id)
+  return(team_id$pk)
 }
 
 #' @keywords internal
@@ -153,6 +153,22 @@ GetPlayerIdFromNumber <- function(number, player_list) {
   return(player_id)
 }
 
+#' Gets a player id from their name.
+#'
+#' @param player_name String, players full name.
+#'
+#' @return Int, player id number.
+#'
+#' @examples
+#' GetPlayerId("John Tavares)
+#'
+#' @export
+GetPlayerId <- function(player_name) {
+  query <- paste("SELECT id FROM players WHERE UPPER(fullName)='", toupper(player_name), "'",
+                 sep="")
+  return(QueryDb(query)$id)
+}
+
 #' @keywords internal
 #' Helper function for checking if a play is even strength, checks the goalies
 #' and the total player count, returns boolean
@@ -223,11 +239,8 @@ GetPlayerStats <- function(player_id, game_ids, team_id) {
     rows <- rows[apply(rows, 1, IsEven),]
     CA_even <- CA_even + nrow(rows)
 
-
-
     # Shots
     #----------------------------------------------------------------
-
     # ShotsFor All Situations
     query <- paste("SELECT * FROM events WHERE game_id=", game_id,
                    " AND player_id=", player_id,
@@ -240,7 +253,6 @@ GetPlayerStats <- function(player_id, game_ids, team_id) {
     # ShotsFor in even strength
     rows <- rows[apply(rows, 1, IsEven),]
     SF_even <- SF_even + nrow(rows)
-
 
   }
 
