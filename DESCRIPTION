@@ -18,3 +18,5 @@ Imports: httr, jsonlite, RSQLite, rvest, DBI, xml2
 RoxygenNote: 7.0.1
 NeedsCompilation: no
 Packaged: 2019-12-17 00:43:27 UTC; Adam
+Suggests: 
+    testthat

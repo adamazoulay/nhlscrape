@@ -223,8 +223,6 @@ GetPlayerStats <- function(player_id, game_ids, team_id) {
     rows <- rows[apply(rows, 1, IsEven),]
     CA_even <- CA_even + nrow(rows)
 
-
-
     # Shots
     #----------------------------------------------------------------
     # Shots All Situations
