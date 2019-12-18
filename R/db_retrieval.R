@@ -1,6 +1,7 @@
 #' Send a SQL query to the database.
 #'
 #' @param query A string containing the SQL query.
+#'
 #' @examples
 #' QueryDb("SELECT * FROM events")
 #' QueryDb("SELECT result_description FROM events WHERE game_id=2019020001 AND player_id=8475166")
@@ -30,6 +31,8 @@ GetDbPath <- function() {
 
 #' Sets the current path to the database file.
 #'
+#' @param db_path A string containing the path to the db file.
+#'
 #' @examples
 #' SetDbPath(system.file("extdata", "nhl.sqlite", package = "nhlscrape"))
 #'
@@ -37,7 +40,7 @@ GetDbPath <- function() {
 #'
 #' @export
 SetDbPath <- function(db_path) {
-  return(setOption(db_file=db_path))
+  return(options(db_file=db_path))
 }
 
 #' Check if the events table exists, returns boolean

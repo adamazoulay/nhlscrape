@@ -153,7 +153,10 @@ AddGameEvents <- function(game_ids) {
           if (substring(time_period, 1, 1) == "0"){
             time_period <- substring(time_period, 2)
           }
-          tmp_event <- subset(html_report, "period_html"==period & "time_elapsed"==time_period)
+
+          # Set period_html and time_elapsed to NULL to avoid undefined global variable NOTEs
+          period_html <- time_elapsed <- NULL
+          tmp_event <- subset(html_report, period_html==period & time_elapsed==time_period)
           # Select first row
           tmp_row <- tmp_event[1,]
 
