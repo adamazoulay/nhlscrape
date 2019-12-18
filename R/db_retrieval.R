@@ -222,6 +222,10 @@ GetPlayerStats <- function(player_id, game_ids, team_id) {
     # CA at even strength
     rows <- rows[apply(rows, 1, IsEven),]
     CA_even <- CA_even + nrow(rows)
+
+
+
+
   }
 
 
