@@ -1,18 +1,3 @@
-#================================================================
-# Database Setup
-#================================================================
-# Check if a db exists, if not then create an empty db
-db_filename <-"nhl.sqlite"
-cur_dir <- getwd()
-db_location <- paste(cur_dir, "/data_raw/", sep="")
-db_file <- paste(db_location, db_filename, sep="")
-if (!file.exists(db_file)) {
-  dir.create(db_location, showWarnings = FALSE)
-  file.create(db_file)
-}
-EVENTS_EMPTY = TRUE
-
-
 #' Send a SQL query to the database.
 #'
 #' @param query A string containing the SQL query.
@@ -22,11 +7,21 @@ EVENTS_EMPTY = TRUE
 #'
 #' @export
 QueryDb <- function(query) {
-  conn <- DBI::dbConnect(RSQLite::SQLite(), db_file)
+  conn <- DBI::dbConnect(RSQLite::SQLite(), getOption("db_file"))
   record <- DBI::dbGetQuery(conn, query)
   DBI::dbDisconnect(conn)
 
   return(record)
+}
+
+#' Check if the events table exists, returns boolean
+#' @keywords internal
+EventsExists <- function() {
+  conn <- DBI::dbConnect(RSQLite::SQLite(), getOption("db_file"))
+  result <- DBI::dbListTables(conn)
+  DBI::dbDisconnect(conn)
+
+  return("events" %in% result)
 }
 
 #' Retrieve the team ID using the abbreviation, or full name of the team.
@@ -36,6 +31,8 @@ QueryDb <- function(query) {
 #' @return Int, team ID number.
 #'
 #' @examples
+#'
+#' AddAllTeamsDb()
 #' GetTeamId("TOR")
 #' GetTeamId("Toronto Maple Leafs")
 #'
@@ -51,6 +48,7 @@ GetTeamId <- function(team_name) {
   return(team_id$id)
 }
 
+#' @keywords internal
 GetTeamRoster <- function(team_id, year) {
   request <- paste("teams/", team_id, "/roster", sep="")
   r <- GetApiJson(request)
@@ -61,6 +59,7 @@ GetTeamRoster <- function(team_id, year) {
            roster$position))
 }
 
+#' @keywords internal
 GetPlayerStatsYears <- function(player_id, year_range) {
   request <- paste("people/",
                    player_id,
@@ -71,12 +70,14 @@ GetPlayerStatsYears <- function(player_id, year_range) {
   return(r$stats$splits[[1]]$stat)
 }
 
+#' @keywords internal
 GetGameIdNext <- function(team_id) {
   request <- paste("people/", team_id, "?expand=team.schedule.next", sep="")
   r <- GetApiJson(request)
   return(r$teams$nextGameSchedule$dates[[1]]$games[[1]]$gamePk)
 }
 
+#' @keywords internal
 GetGameIdPrevious <- function(team_id) {
   request <- paste("teams/", team_id, "?expand=team.schedule.previous", sep="")
   r <- GetApiJson(request)
@@ -147,6 +148,7 @@ IsEven <- function(row) {
 #' @return Dataframe containing a row of stats for even strength and for all situations.
 #'
 #' @examples
+#' AddGameEvents(2019020001)
 #' GetPlayerStats(8475166, 2019020001, 10)
 #'
 #' @export

@@ -1,17 +1,12 @@
-#================================================================
-# API Setup
-#================================================================
-api_url <- "https://statsapi.web.nhl.com/api/v1/"
-
 #' @keywords internal
 #' Calls the api with call, returns the html
 GetApiJson <- function(call) {
-  request <- paste(api_url, call, sep="")
+  request <- paste(getOption("api_url"), call, sep="")
   r <- httr::GET(request)
 
   # Logging
-  log <- paste("[", Sys.time(), "] ", request, sep="")
-  write(log, file="requests.log", append=TRUE)
+  #log <- paste("[", Sys.time(), "] ", request, sep="")
+  #write(log, file="./nhlscrape/requests.log", append=TRUE)
 
   # Make sure we have the correct data from the GET request
   httr::stop_for_status(r)

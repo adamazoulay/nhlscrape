@@ -14,7 +14,7 @@ ExistsInDb <- function(table, pk) {
 #' Add the dataframe to the database under 'table'
 AddDb <- function(table, df) {
   # Add all rows to db, checking if the exist already
-  conn <- DBI::dbConnect(RSQLite::SQLite(), db_file)
+  conn <- DBI::dbConnect(RSQLite::SQLite(), getOption("db_file"))
 
   # Create the table if it doesn't exist yet (keep 0 rows)
   if (!DBI::dbExistsTable(conn, table)) {
@@ -92,11 +92,10 @@ AddTeamRoster <- function(team_id, season) {
 #' @export
 AddGameEvents <- function(game_ids) {
   for (game_id in game_ids) {
-    if (EVENTS_EMPTY == FALSE && nrow(QueryDb(paste("SELECT * FROM events WHERE game_id=", game_id))) > 0) {
+    if (EventsExists() && nrow(QueryDb(paste("SELECT * FROM events WHERE game_id=", game_id))) > 0) {
       message(paste("game with game_id:'", game_id,"'already in database", sep=""))
       next
     }
-    EVENTS_EMPTY = FALSE
 
     request <- paste("game/", game_id, "/feed/live", sep="")
     df <- GetApiJson(request)
