@@ -217,8 +217,7 @@ GetPlayerStats <- function(player_id, game_ids, team_id) {
 
   gids_str <- paste(game_ids, collapse=",")
 
-  # Corsi
-  #----------------------------------------------------------------
+  # Corsi ----------------------------------------------------------------
   # CF in all situations
   query <- paste("SELECT * FROM events WHERE game_id IN (", gids_str, ")",
                  " AND (playerType='Shooter' OR playerType='Scorer')",
@@ -246,7 +245,7 @@ GetPlayerStats <- function(player_id, game_ids, team_id) {
   stats["Even_strength", c("CF", "CA")] <- c(nrow(CF_even), nrow(CA_even))
 
   # Shots
-  #----------------------------------------------------------------
+  # Shots ----------------------------------------------------------------
   # Shots All Situations
   query <- paste("SELECT * FROM events WHERE game_id IN (", gids_str, ")",
                  " AND player_id=", player_id,
