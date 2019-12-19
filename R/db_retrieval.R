@@ -257,8 +257,58 @@ GetPlayerStats <- function(player_id, game_ids, team_id) {
   # Shots at even strength
   S_even <- CutRows(S_all, IsEven)
 
+
   stats["All_situations", "S"] <- nrow(S_all)
   stats["Even_strength", "S"] <- nrow(S_even)
+
+  # Fenwic ----------------------------------------------------------------
+  # FF in all situations
+  query <- paste("SELECT * FROM events WHERE game_id IN (", gids_str, ")",
+                 " AND result_eventTypeId!='BLOCKED_SHOT'",
+                 " AND (playerType='Shooter' OR playerType='Scorer')",
+                 " AND players_on_ice LIKE '%", player_id, "%'",
+                 " AND player_team_id='", team_id, "'",
+                 sep="")
+  FF_all <- QueryDb(query)
+
+  #FF at even strength NOT MATCHING UP!?!?
+  FF_even <- CutRows(FF_all, IsEven)
+
+  #FA in all situations
+  query <- paste("SELECT * FROM events WHERE player_id!=", player_id,
+                 " AND game_id IN (", gids_str, ")",
+                 " AND result_eventTypeId!='BLOCKED_SHOT'",
+                 " AND (playerType='Shooter' OR playerType='Scorer')",
+                 " AND players_on_ice LIKE '%", player_id, "%'",
+                 " AND player_team_id!='", team_id, "'",
+                 sep="")
+  FA_all <- QueryDb(query)
+
+  #FA at even strength
+  FA_even <- CutRows(FA_all, IsEven)
+
+  # Goals ----------------------------------------------------------------
+  # GF in all situations
+  query <- paste("SELECT * FROM events  WHERE game_id IN (", gids_str, ")",
+                 " AND playerType='Scorer'",
+                 " AND players_on_ice LIKE '%", player_id, "%'",
+                 " AND player_team_id='", team_id, "'",
+                 sep="")
+  GF_all <- QueryDb(query)
+
+  #GF at even strength
+  GF_even <- CutRows(GF_all, IsEven)
+
+  # GA in all situations
+  query <- paste("SELECT * FROM events  WHERE game_id IN (", gids_str, ")",
+                 " AND playerType='Scorer'",
+                 " AND players_on_ice LIKE '%", player_id, "%'",
+                 " AND player_team_id!='", team_id, "'",
+                 sep="")
+  GA_all <- QueryDb(query)
+
+  #GA at even strength
+  GA_even <- CutRows(GA_all, IsEven)
 
 
   return(stats)
