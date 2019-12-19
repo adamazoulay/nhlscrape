@@ -186,6 +186,12 @@ IsEven <- function(row) {
   return(is_even)
 }
 
+#' @keywords internal
+#' Helper function to cut out rows based on conditional function, ex. IsEven
+CutRows <- function(rows, fun) {
+  return(rows[apply(rows, 1, fun),])
+}
+
 #' WIP - Get advanced statistics for player_id on team_id in a list of games.
 #'
 #' @param player_id Player ID number.
@@ -201,73 +207,61 @@ IsEven <- function(row) {
 #' @export
 GetPlayerStats <- function(player_id, game_ids, team_id) {
 
+  num_stats <- 3
+  num_situations <- 2
   # Initialize stats df
-  stats <- data.frame(matrix(ncol = 4, nrow = 0))
-  CF_all <- 0
-  CA_all <- 0
-  CF_even <- 0
-  CA_even <- 0
-  SF_all <- 0
-  SF_even <- 0
-
-  for (game_id in game_ids) {
-
-    # Corsi
-    #----------------------------------------------------------------
-    # CF all situations
-    query <- paste("SELECT * FROM events WHERE game_id=", game_id,
-                   " AND (playerType='Shooter' OR playerType='Scorer')",
-                   " AND players_on_ice LIKE '%", player_id, "%'",
-                   " AND player_team_id='", team_id, "'",
-                   sep="")
-    rows <- QueryDb(query)
-    CF_all <- CF_all + nrow(rows)
-
-    # CF in even strength situations
-    rows <- rows[apply(rows, 1, IsEven),]
-    CF_even <- CF_even + nrow(rows)
-
-    # CA in all situations
-    query <- paste("SELECT * FROM events WHERE player_id!=", player_id,
-                   " AND game_id=", game_id,
-                   " AND (playerType='Shooter' OR playerType='Scorer')",
-                   " AND players_on_ice LIKE '%", player_id, "%'",
-                   " AND player_team_id!='", team_id, "'",
-                   sep="")
-    rows <- QueryDb(query)
-    CA_all <- CA_all + nrow(rows)
-
-    # CA at even strength
-    rows <- rows[apply(rows, 1, IsEven),]
-    CA_even <- CA_even + nrow(rows)
-
-    # Shots
-    #----------------------------------------------------------------
-    # ShotsFor All Situations
-    query <- paste("SELECT * FROM events WHERE game_id=", game_id,
-                   " AND player_id=", player_id,
-                   " AND (playerType='Shooter' OR playerType='Scorer')",
-                   " AND (result_eventTypeId='SHOT' OR result_eventTypeId='GOAL')",
-                   " AND about_periodType!='SHOOTOUT'",
-                   sep="")
-    rows <- QueryDb(query)
-    SF_all <- SF_all + nrow(rows)
-
-    # ShotsFor in even strength
-    rows <- rows[apply(rows, 1, IsEven),]
-    SF_even <- SF_even + nrow(rows)
-
-  }
-
-
-  # Finalize stats df
-  # Corsi
-  corsi_all <- CF_all - CA_all
-  corsi_even <- CF_even - CA_even
-
-
-  stats <- rbind(stats, c(CF_all, CA_all, corsi_all, SF_all), c(CF_even, CA_even, corsi_even, SF_even))
-  names(stats) <- c("CF", "CA", "C", "SF")
+  stats <- data.frame(matrix(ncol = num_stats, nrow = num_situations))
+  names(stats) <- c("CF", "CA", "S")
   rownames(stats) <- c("All_situations", "Even_strength")
+
+
+  gids_str <- paste(game_ids, collapse=",")
+
+  # Corsi
+  #----------------------------------------------------------------
+  # CF in all situations
+  query <- paste("SELECT * FROM events WHERE game_id IN (", gids_str, ")",
+                 " AND (playerType='Shooter' OR playerType='Scorer')",
+                 " AND players_on_ice LIKE '%", player_id, "%'",
+                 " AND player_team_id='", team_id, "'",
+                 sep="")
+  CF_all <- QueryDb(query)
+
+  # CA in all situations
+  query <- paste("SELECT * FROM events WHERE player_id!=", player_id,
+                 " AND game_id IN (", gids_str, ")",
+                 " AND (playerType='Shooter' OR playerType='Scorer')",
+                 " AND players_on_ice LIKE '%", player_id, "%'",
+                 " AND player_team_id!='", team_id, "'",
+                 sep="")
+  CA_all <- QueryDb(query)
+
+  # CF at even strength
+  CF_even <- CutRows(CF_all, IsEven)
+
+  # CA at even strength
+  CA_even <- CutRows(CA_all, IsEven)
+
+  stats["All_situations", c("CF", "CA")] <- c(nrow(CF_all), nrow(CA_all))
+  stats["Even_strength", c("CF", "CA")] <- c(nrow(CF_even), nrow(CA_even))
+
+  # Shots
+  #----------------------------------------------------------------
+  # Shots All Situations
+  query <- paste("SELECT * FROM events WHERE game_id IN (", gids_str, ")",
+                 " AND player_id=", player_id,
+                 " AND (playerType='Shooter' OR playerType='Scorer')",
+                 " AND (result_eventTypeId='SHOT' OR result_eventTypeId='GOAL')",
+                 " AND about_periodType!='SHOOTOUT'",
+                 sep="")
+  S_all <- QueryDb(query)
+
+  # Shots at even strength
+  S_even <- CutRows(S_all, IsEven)
+
+  stats["All_situations", "S"] <- nrow(S_all)
+  stats["Even_strength", "S"] <- nrow(S_even)
+
+
   return(stats)
 }
