@@ -244,7 +244,6 @@ GetPlayerStats <- function(player_id, game_ids, team_id) {
   stats["All_situations", c("CF", "CA")] <- c(nrow(CF_all), nrow(CA_all))
   stats["Even_strength", c("CF", "CA")] <- c(nrow(CF_even), nrow(CA_even))
 
-  # Shots
   # Shots ----------------------------------------------------------------
   # Shots All Situations
   query <- paste("SELECT * FROM events WHERE game_id IN (", gids_str, ")",
