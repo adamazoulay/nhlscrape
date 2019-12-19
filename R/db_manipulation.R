@@ -84,15 +84,30 @@ AddTeamRoster <- function(team_id, season) {
 
 #' @keywords internal
 #' Add the player rosters to the 'players' table, not adding duplicates
-AddRoster <- function(player_list) {
+#' We also add the player toi to the player_toi table
+AddRoster <- function(player_list, game_id) {
+  # Add the players to the players table for searching
+  # Add the time-on-ice for each player to the player_toi table
   player_df <- data.frame()
+  toi_df <- data.frame(stringsAsFactors = FALSE)
   for (player in player_list) {
+    # Player lists
     player_row <- data.frame(player[[1]])[,1:7]
     player_row <- within(player_row, rm("primaryNumber"))
     player_row <- cbind("pk"=player_row$id, player_row)
     player_df <- rbind(player_df, player_row)
+
+    # Player toi
+    stats <- player[[4]]
+    if (length(stats) > 0) {
+      toi_row <- cbind("pk"=paste(game_id, "_", player_row$id, sep=""),
+                       "player_id"=player_row$id,
+                       "time_on_ice"=player[[4]][[1]][[1]])
+      toi_df <- rbind(toi_df, toi_row)
+    }
   }
   AddDb("players", player_df)
+  AddDb("player_toi", toi_row)
 }
 
 
@@ -121,8 +136,8 @@ AddGameEvents <- function(game_ids) {
     away_roster <- boxscore$teams$away$players
     player_list <- c(home_roster, away_roster)
 
-    # Add players to players table
-    AddRoster(player_list)
+    # Add players to players table and boxscores to the player_boxscores table
+    AddRoster(player_list, game_id)
 
     players <- df$liveData$plays$allPlays$players
     plays <- df$liveData$plays$allPlays
