@@ -2,7 +2,8 @@
 % Please edit documentation in R/db_retrieval.R
 \name{GetDbPath}
 \alias{GetDbPath}
-\title{Returns the current path to the database file.}
+\title{Returns the current path to the local database file. By default this is located at
+system.file("extdata", "nhl.sqlite", package = "nhlscrape").}
 \usage{
 GetDbPath()
 }
@@ -10,7 +11,8 @@ GetDbPath()
 String containing the path to the database.
 }
 \description{
-Returns the current path to the database file.
+Returns the current path to the local database file. By default this is located at
+system.file("extdata", "nhl.sqlite", package = "nhlscrape").
 }
 \examples{
 GetDbPath()

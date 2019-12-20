@@ -2,7 +2,8 @@
 % Please edit documentation in R/db_manipulation.R
 \name{AddTeamRoster}
 \alias{AddTeamRoster}
-\title{Add a teams roster to the 'roster' table for 'season'.}
+\title{Add a teams roster to the 'roster' table for season. Can be accessed with a primary key
+of 'season_teamid_personid'.}
 \usage{
 AddTeamRoster(team_id, season)
 }
@@ -12,10 +13,10 @@ AddTeamRoster(team_id, season)
 \item{season}{A year range you want to add.}
 }
 \description{
-Add a teams roster to the 'roster' table for 'season'.
+Add a teams roster to the 'roster' table for season. Can be accessed with a primary key
+of 'season_teamid_personid'.
 }
 \examples{
 AddTeamRoster(10, 20192020)
-AddTeamRoster(3, 20142015)
 
 }

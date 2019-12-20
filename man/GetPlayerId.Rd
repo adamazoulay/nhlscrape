@@ -2,7 +2,8 @@
 % Please edit documentation in R/db_retrieval.R
 \name{GetPlayerId}
 \alias{GetPlayerId}
-\title{Gets a player id from their name.}
+\title{Gets a player id from their name. Will only work for players that were active in a game that
+has already been added to the database.}
 \usage{
 GetPlayerId(player_name)
 }
@@ -13,5 +14,11 @@ GetPlayerId(player_name)
 Int, player id number.
 }
 \description{
-Gets a player id from their name.
+Gets a player id from their name. Will only work for players that were active in a game that
+has already been added to the database.
+}
+\examples{
+AddGameEvents(2019020001)
+GetPlayerId("John Tavares")
+
 }

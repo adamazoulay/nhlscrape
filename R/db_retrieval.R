@@ -1,23 +1,26 @@
-#' Send a SQL query to the database.
+#' Send a SQL query to the database. Retruns the SQL result as a data.frame. Useful for
+#' seeing the structure of the database for construction of queries.
 #'
 #' @param query A string containing the SQL query.
 #'
 #' @examples
+#' AddGameEvents(2019020001)
 #' QueryDb("SELECT * FROM events")
 #' QueryDb("SELECT result_description FROM events WHERE game_id=2019020001 AND player_id=8475166")
 #'
-#' @return Dataframe containing the SQL query result.
+#' @return Data.frame containing the SQL query result.
 #'
 #' @export
 QueryDb <- function(query) {
-  conn <- DBI::dbConnect(RSQLite::SQLite(), getOption("db_file"))
+  conn <- DBI::dbConnect(RSQLite::SQLite(), nhlscrape.globals$db_file)
   record <- DBI::dbGetQuery(conn, query)
   DBI::dbDisconnect(conn)
 
   return(record)
 }
 
-#' Returns the current path to the database file.
+#' Returns the current path to the local database file. By default this is located at
+#' system.file("extdata", "nhl.sqlite", package = "nhlscrape").
 #'
 #' @examples
 #' GetDbPath()
@@ -26,34 +29,38 @@ QueryDb <- function(query) {
 #'
 #' @export
 GetDbPath <- function() {
-  return(getOption("db_file"))
+  return(nhlscrape.globals$db_file)
 }
 
-#' Sets the current path to the database file.
+#' Sets the current path to the database file. This can be done to allow
+#' remote storage or different database files.
+#' Default is nhlscrape/extdata/nhl.sqlite.
 #'
 #' @param db_path A string containing the path to the db file.
 #'
 #' @examples
-#' SetDbPath(system.file("extdata", "nhl.sqlite", package = "nhlscrape"))
+#' \dontrun{
+#' SetDbPath("C:/Users/Adam/Documents/nhl.sqlite")
+#' }
 #'
 #' @return String containing the path to the database.
 #'
 #' @export
-SetDbPath <- function(db_path) {
-  return(options(db_file=db_path))
+SetDbPath <- function(db_path=system.file("extdata", "nhl.sqlite", package = "nhlscrape")) {
+  nhlscrape.globals$db_file <- db_path
 }
 
 #' Check if the events table exists, returns boolean
 #' @keywords internal
 EventsExists <- function() {
-  conn <- DBI::dbConnect(RSQLite::SQLite(), getOption("db_file"))
+  conn <- DBI::dbConnect(RSQLite::SQLite(), nhlscrape.globals$db_file)
   result <- DBI::dbListTables(conn)
   DBI::dbDisconnect(conn)
 
   return("events" %in% result)
 }
 
-#' Retrieve the team ID using the abbreviation, or full name of the team.
+#' Retrieve the team ID using the abbreviation, or full name of the team. Case independent.
 #'
 #' @param team_name String containing either abbreviation or full name.
 #'
@@ -112,7 +119,7 @@ GetGameIdPrevious <- function(team_id) {
   return(r$teams$previousGameSchedule$dates[[1]]$games[[1]]$gamePk)
 }
 
-#' Gets a list of game ids for team_id in a specific date range.
+#' Gets a list of game ids for team_id in a specific date range, inclusive.
 #'
 #' @param team_id Team ID number.
 #' @param start_date Starting date of the games, inclusive. Format: "yyyy-mm-dd".
@@ -153,14 +160,16 @@ GetPlayerIdFromNumber <- function(number, player_list) {
   return(player_id)
 }
 
-#' Gets a player id from their name.
+#' Gets a player id from their name. Will only work for players that were active in a game that
+#' has already been added to the database.
 #'
 #' @param player_name String, players full name.
 #'
 #' @return Int, player id number.
 #'
 #' @examples
-#' GetPlayerId("John Tavares)
+#' AddGameEvents(2019020001)
+#' GetPlayerId("John Tavares")
 #'
 #' @export
 GetPlayerId <- function(player_name) {
@@ -193,6 +202,10 @@ CutRows <- function(rows, fun) {
 }
 
 #' WIP - Get advanced statistics for player_id on team_id in a list of games.
+#' The current stats returned are:
+#' - Corsi For
+#' - Corsi Against
+#' - Shots
 #'
 #' @param player_id Player ID number.
 #' @param game_ids List of game ids to check. Must already be in the database.

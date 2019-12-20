@@ -14,7 +14,7 @@ ExistsInDb <- function(table, pk) {
 #' Add the dataframe to the database under 'table'
 AddDb <- function(table, df) {
   # Add all rows to db, checking if the exist already
-  conn <- DBI::dbConnect(RSQLite::SQLite(), getOption("db_file"))
+  conn <- DBI::dbConnect(RSQLite::SQLite(), nhlscrape.globals$db_file)
 
   # Create the table if it doesn't exist yet (keep 0 rows)
   if (!DBI::dbExistsTable(conn, table)) {
@@ -35,7 +35,9 @@ AddDb <- function(table, df) {
 }
 
 
-#' Add all teams to the database.
+#' Add all teams to the database. The teams will get stored in the database in the 'teams' table.
+#'
+#' !Will not write if teams already exist in the database!
 #'
 #' @examples
 #' AddAllTeamsDb()
@@ -56,14 +58,14 @@ AddAllTeamsDb <- function() {
   AddDb("teams", df)
 }
 
-#' Add a teams roster to the 'roster' table for 'season'.
+#' Add a teams roster to the 'roster' table for season. Can be accessed with a primary key
+#' of 'season_teamid_personid'.
 #'
 #' @param team_id Identity number for the team. Use GetTeamId to find.
 #' @param season A year range you want to add.
 #'
 #' @examples
 #' AddTeamRoster(10, 20192020)
-#' AddTeamRoster(3, 20142015)
 #'
 #' @export
 AddTeamRoster <- function(team_id, season) {
@@ -75,7 +77,7 @@ AddTeamRoster <- function(team_id, season) {
   names(df) <- cols
 
   # Make a new col for the pk
-  df$pk <- paste(df$person_id, season, sep="_")
+  df$pk <- paste(season, team_id, df$person_id, sep="_")
   df$team_id <- as.integer(team_id)
 
   # Add to database
@@ -100,18 +102,23 @@ AddRoster <- function(player_list, game_id) {
     # Player toi
     stats <- player[[4]]
     if (length(stats) > 0) {
-      toi_row <- cbind("pk"=paste(game_id, "_", player_row$id, sep=""),
+      toi_row <- cbind("pk"=paste(game_id, player_row$id, sep="_"),
                        "player_id"=player_row$id,
                        "time_on_ice"=player[[4]][[1]][[1]])
       toi_df <- rbind(toi_df, toi_row)
     }
   }
   AddDb("players", player_df)
-  AddDb("player_toi", toi_row)
+  AddDb("player_toi", toi_df)
 }
 
 
-#' Add all events from a 'game_id' to the 'events' table
+#' Add all events from a game_id to the 'events' table. Also adds all players in the
+#' game to the 'players' table to allow for searching by name to retrieve player_id.
+#' Finally, adds the total time on ice for each player to the 'player_toi' table. This
+#' allows for calculation of certain statistics based on time usage.
+#'
+#' !Will not write if game already exists in the database!
 #'
 #' @param game_ids List of identifying numbers for the game. Use GetGameIds to find.
 #'
@@ -122,7 +129,7 @@ AddRoster <- function(player_list, game_id) {
 AddGameEvents <- function(game_ids) {
   for (game_id in game_ids) {
     if (EventsExists() && nrow(QueryDb(paste("SELECT * FROM events WHERE game_id=", game_id))) > 0) {
-      message(paste("game with game_id:'", game_id,"'already in database", sep=""))
+      message(paste("game with game_id:'", game_id,"' already in database", sep=""))
       next
     }
 

@@ -2,7 +2,7 @@
 % Please edit documentation in R/db_retrieval.R
 \name{GetTeamId}
 \alias{GetTeamId}
-\title{Retrieve the team ID using the abbreviation, or full name of the team.}
+\title{Retrieve the team ID using the abbreviation, or full name of the team. Case independent.}
 \usage{
 GetTeamId(team_name)
 }
@@ -13,7 +13,7 @@ GetTeamId(team_name)
 Int, team ID number.
 }
 \description{
-Retrieve the team ID using the abbreviation, or full name of the team.
+Retrieve the team ID using the abbreviation, or full name of the team. Case independent.
 }
 \examples{
 AddAllTeamsDb()
