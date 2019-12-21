@@ -28,6 +28,7 @@ The current stats returned are:
 - Shots
 }
 \examples{
+SetDbPath()
 AddGameEvents(2019020001)
 GetPlayerStats(8475166, 2019020001, 10)
 

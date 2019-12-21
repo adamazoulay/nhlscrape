@@ -13,6 +13,10 @@ ExistsInDb <- function(table, pk) {
 #' @keywords internal
 #' Add the dataframe to the database under 'table'
 AddDb <- function(table, df) {
+  # Check that we have a user defined database. If not, stop with error.
+  if (nhlscrape.globals$user_set_db == FALSE){
+    stop("No user defined database found. Please use SetDbPath().")
+  }
   # Add all rows to db, checking if the exist already
   conn <- DBI::dbConnect(RSQLite::SQLite(), nhlscrape.globals$db_file)
 
@@ -40,6 +44,7 @@ AddDb <- function(table, df) {
 #' !Will not write if teams already exist in the database!
 #'
 #' @examples
+#' SetDbPath()
 #' AddAllTeamsDb()
 #'
 #' @export
@@ -65,6 +70,7 @@ AddAllTeamsDb <- function() {
 #' @param season A year range you want to add.
 #'
 #' @examples
+#' SetDbPath()
 #' AddTeamRoster(10, 20192020)
 #'
 #' @export
@@ -123,6 +129,7 @@ AddRoster <- function(player_list, game_id) {
 #' @param game_ids List of identifying numbers for the game. Use GetGameIds to find.
 #'
 #' @examples
+#' SetDbPath()
 #' AddGameEvents(2019020001)
 #'
 #' @export

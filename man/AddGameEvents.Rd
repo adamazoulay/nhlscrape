@@ -16,6 +16,7 @@ AddGameEvents(game_ids)
 !Will not write if game already exists in the database!
 }
 \examples{
+SetDbPath()
 AddGameEvents(2019020001)
 
 }

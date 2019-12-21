@@ -10,6 +10,7 @@ AddAllTeamsDb()
 !Will not write if teams already exist in the database!
 }
 \examples{
+SetDbPath()
 AddAllTeamsDb()
 
 }

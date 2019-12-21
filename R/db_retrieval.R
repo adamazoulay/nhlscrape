@@ -4,6 +4,7 @@
 #' @param query A string containing the SQL query.
 #'
 #' @examples
+#' SetDbPath()
 #' AddGameEvents(2019020001)
 #' QueryDb("SELECT * FROM events")
 #' QueryDb("SELECT result_description FROM events WHERE game_id=2019020001 AND player_id=8475166")
@@ -12,6 +13,9 @@
 #'
 #' @export
 QueryDb <- function(query) {
+  if (nhlscrape.globals$user_set_db == FALSE){
+    stop("No user defined database found. Please use SetDbPath().")
+  }
   conn <- DBI::dbConnect(RSQLite::SQLite(), nhlscrape.globals$db_file)
   record <- DBI::dbGetQuery(conn, query)
   DBI::dbDisconnect(conn)
@@ -47,6 +51,7 @@ GetDbPath <- function() {
 #'
 #' @export
 SetDbPath <- function(db_path=system.file("extdata", "nhl.sqlite", package = "nhlscrape")) {
+  nhlscrape.globals$user_set_db <-TRUE
   nhlscrape.globals$db_file <- db_path
 }
 
@@ -67,6 +72,7 @@ EventsExists <- function() {
 #' @return Int, team ID number.
 #'
 #' @examples
+#' SetDbPath()
 #' AddAllTeamsDb()
 #' GetTeamId("TOR")
 #' GetTeamId("Toronto Maple Leafs")
@@ -168,6 +174,7 @@ GetPlayerIdFromNumber <- function(number, player_list) {
 #' @return Int, player id number.
 #'
 #' @examples
+#' SetDbPath()
 #' AddGameEvents(2019020001)
 #' GetPlayerId("John Tavares")
 #'
@@ -214,6 +221,7 @@ CutRows <- function(rows, fun) {
 #' @return Dataframe containing a row of stats for even strength and for all situations.
 #'
 #' @examples
+#' SetDbPath()
 #' AddGameEvents(2019020001)
 #' GetPlayerStats(8475166, 2019020001, 10)
 #'
