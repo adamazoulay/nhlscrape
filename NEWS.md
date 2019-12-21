@@ -10,5 +10,5 @@
 # Version 0.1.0
 
 * Initial submission
-* Add game events to database from 'NHL'api
+* Add game events to database from 'NHL' api
 * Generate reports for game statistics
