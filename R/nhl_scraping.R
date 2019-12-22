@@ -1,7 +1,7 @@
 #' @keywords internal
 #' Calls the api with call, returns the html
 GetApiJson <- function(call) {
-  request <- paste(getOption("api_url"), call, sep="")
+  request <- paste(nhlscrape.globals$api_url, call, sep="")
   r <- httr::GET(request)
 
   # Logging

@@ -2,7 +2,8 @@
 % Please edit documentation in R/db_retrieval.R
 \name{QueryDb}
 \alias{QueryDb}
-\title{Send a SQL query to the database.}
+\title{Send a SQL query to the database. Retruns the SQL result as a data.frame. Useful for
+seeing the structure of the database for construction of queries.}
 \usage{
 QueryDb(query)
 }
@@ -10,12 +11,15 @@ QueryDb(query)
 \item{query}{A string containing the SQL query.}
 }
 \value{
-Dataframe containing the SQL query result.
+Data.frame containing the SQL query result.
 }
 \description{
-Send a SQL query to the database.
+Send a SQL query to the database. Retruns the SQL result as a data.frame. Useful for
+seeing the structure of the database for construction of queries.
 }
 \examples{
+SetDbPath()
+AddGameEvents(2019020001)
 QueryDb("SELECT * FROM events")
 QueryDb("SELECT result_description FROM events WHERE game_id=2019020001 AND player_id=8475166")
 

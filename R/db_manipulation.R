@@ -13,8 +13,12 @@ ExistsInDb <- function(table, pk) {
 #' @keywords internal
 #' Add the dataframe to the database under 'table'
 AddDb <- function(table, df) {
+  # Check that we have a user defined database. If not, stop with error.
+  if (nhlscrape.globals$user_set_db == FALSE){
+    stop("No user defined database found. Please use SetDbPath().")
+  }
   # Add all rows to db, checking if the exist already
-  conn <- DBI::dbConnect(RSQLite::SQLite(), getOption("db_file"))
+  conn <- DBI::dbConnect(RSQLite::SQLite(), nhlscrape.globals$db_file)
 
   # Create the table if it doesn't exist yet (keep 0 rows)
   if (!DBI::dbExistsTable(conn, table)) {
@@ -35,9 +39,12 @@ AddDb <- function(table, df) {
 }
 
 
-#' Add all teams to the database.
+#' Add all teams to the database. The teams will get stored in the database in the 'teams' table.
+#'
+#' !Will not write if teams already exist in the database!
 #'
 #' @examples
+#' SetDbPath()
 #' AddAllTeamsDb()
 #'
 #' @export
@@ -56,14 +63,15 @@ AddAllTeamsDb <- function() {
   AddDb("teams", df)
 }
 
-#' Add a teams roster to the 'roster' table for 'season'.
+#' Add a teams roster to the 'roster' table for season. Can be accessed with a primary key
+#' of 'season_teamid_personid'.
 #'
 #' @param team_id Identity number for the team. Use GetTeamId to find.
 #' @param season A year range you want to add.
 #'
 #' @examples
+#' SetDbPath()
 #' AddTeamRoster(10, 20192020)
-#' AddTeamRoster(3, 20142015)
 #'
 #' @export
 AddTeamRoster <- function(team_id, season) {
@@ -75,25 +83,60 @@ AddTeamRoster <- function(team_id, season) {
   names(df) <- cols
 
   # Make a new col for the pk
-  df$pk <- paste(df$person_id, season, sep="_")
+  df$pk <- paste(season, team_id, df$person_id, sep="_")
   df$team_id <- as.integer(team_id)
 
   # Add to database
   AddDb("rosters", df)
 }
 
-#' Add all events from a 'game_id' to the 'events' table
+#' @keywords internal
+#' Add the player rosters to the 'players' table, not adding duplicates
+#' We also add the player toi to the player_toi table
+AddRoster <- function(player_list, game_id) {
+  # Add the players to the players table for searching
+  # Add the time-on-ice for each player to the player_toi table
+  player_df <- data.frame()
+  toi_df <- data.frame(stringsAsFactors = FALSE)
+  for (player in player_list) {
+    # Player lists
+    player_row <- data.frame(player[[1]])[,1:7]
+    player_row <- within(player_row, rm("primaryNumber"))
+    player_row <- cbind("pk"=player_row$id, player_row)
+    player_df <- rbind(player_df, player_row)
+
+    # Player toi
+    stats <- player[[4]]
+    if (length(stats) > 0) {
+      toi_row <- cbind("pk"=paste(game_id, player_row$id, sep="_"),
+                       "player_id"=player_row$id,
+                       "time_on_ice"=player[[4]][[1]][[1]])
+      toi_df <- rbind(toi_df, toi_row)
+    }
+  }
+  AddDb("players", player_df)
+  AddDb("player_toi", toi_df)
+}
+
+
+#' Add all events from a game_id to the 'events' table. Also adds all players in the
+#' game to the 'players' table to allow for searching by name to retrieve player_id.
+#' Finally, adds the total time on ice for each player to the 'player_toi' table. This
+#' allows for calculation of certain statistics based on time usage.
+#'
+#' !Will not write if game already exists in the database!
 #'
 #' @param game_ids List of identifying numbers for the game. Use GetGameIds to find.
 #'
 #' @examples
+#' SetDbPath()
 #' AddGameEvents(2019020001)
 #'
 #' @export
 AddGameEvents <- function(game_ids) {
   for (game_id in game_ids) {
     if (EventsExists() && nrow(QueryDb(paste("SELECT * FROM events WHERE game_id=", game_id))) > 0) {
-      message(paste("game with game_id:'", game_id,"'already in database", sep=""))
+      message(paste("game with game_id:'", game_id,"' already in database", sep=""))
       next
     }
 
@@ -105,7 +148,10 @@ AddGameEvents <- function(game_ids) {
     boxscore <- GetApiJson(request)
     home_roster <- boxscore$teams$home$players
     away_roster <- boxscore$teams$away$players
+    player_list <- c(home_roster, away_roster)
 
+    # Add players to players table and boxscores to the player_boxscores table
+    AddRoster(player_list, game_id)
 
     players <- df$liveData$plays$allPlays$players
     plays <- df$liveData$plays$allPlays
@@ -141,7 +187,6 @@ AddGameEvents <- function(game_ids) {
           df$pk <- paste(game_id, df$about_eventIdx, df$player_id, sep="_")
 
           # Append player current team id for ident
-          player_list <- c(home_roster, away_roster)
           player_id_num <- paste("ID", row$player$id[[j]], sep="")
           player_team_id <- player_list[[player_id_num]]$person$currentTeam$id
           df <- cbind(df, "player_team_id"=player_team_id)

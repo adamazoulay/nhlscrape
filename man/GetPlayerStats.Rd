@@ -2,7 +2,11 @@
 % Please edit documentation in R/db_retrieval.R
 \name{GetPlayerStats}
 \alias{GetPlayerStats}
-\title{WIP - Get advanced statistics for player_id on team_id in a list of games.}
+\title{WIP - Get advanced statistics for player_id on team_id in a list of games.
+The current stats returned are:
+- Corsi For
+- Corsi Against
+- Shots}
 \usage{
 GetPlayerStats(player_id, game_ids, team_id)
 }
@@ -18,8 +22,13 @@ Dataframe containing a row of stats for even strength and for all situations.
 }
 \description{
 WIP - Get advanced statistics for player_id on team_id in a list of games.
+The current stats returned are:
+- Corsi For
+- Corsi Against
+- Shots
 }
 \examples{
+SetDbPath()
 AddGameEvents(2019020001)
 GetPlayerStats(8475166, 2019020001, 10)
 

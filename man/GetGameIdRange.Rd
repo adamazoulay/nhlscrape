@@ -2,7 +2,7 @@
 % Please edit documentation in R/db_retrieval.R
 \name{GetGameIdRange}
 \alias{GetGameIdRange}
-\title{Gets a list of game ids for team_id in a specific date range.}
+\title{Gets a list of game ids for team_id in a specific date range, inclusive.}
 \usage{
 GetGameIdRange(team_id, start_date, end_date)
 }
@@ -17,7 +17,7 @@ GetGameIdRange(team_id, start_date, end_date)
 List of ints, each element is a game ID in selected range.
 }
 \description{
-Gets a list of game ids for team_id in a specific date range.
+Gets a list of game ids for team_id in a specific date range, inclusive.
 }
 \examples{
 GetGameIdRange(10, "2019-09-30", "2019-12-16")

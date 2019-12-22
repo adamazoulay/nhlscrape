@@ -2,14 +2,15 @@
 % Please edit documentation in R/db_manipulation.R
 \name{AddAllTeamsDb}
 \alias{AddAllTeamsDb}
-\title{Add all teams to the database.}
+\title{Add all teams to the database. The teams will get stored in the database in the 'teams' table.}
 \usage{
 AddAllTeamsDb()
 }
 \description{
-Add all teams to the database.
+!Will not write if teams already exist in the database!
 }
 \examples{
+SetDbPath()
 AddAllTeamsDb()
 
 }

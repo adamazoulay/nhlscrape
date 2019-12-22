@@ -1,23 +1,30 @@
-#' Send a SQL query to the database.
+#' Send a SQL query to the database. Retruns the SQL result as a data.frame. Useful for
+#' seeing the structure of the database for construction of queries.
 #'
 #' @param query A string containing the SQL query.
 #'
 #' @examples
+#' SetDbPath()
+#' AddGameEvents(2019020001)
 #' QueryDb("SELECT * FROM events")
 #' QueryDb("SELECT result_description FROM events WHERE game_id=2019020001 AND player_id=8475166")
 #'
-#' @return Dataframe containing the SQL query result.
+#' @return Data.frame containing the SQL query result.
 #'
 #' @export
 QueryDb <- function(query) {
-  conn <- DBI::dbConnect(RSQLite::SQLite(), getOption("db_file"))
+  if (nhlscrape.globals$user_set_db == FALSE){
+    stop("No user defined database found. Please use SetDbPath().")
+  }
+  conn <- DBI::dbConnect(RSQLite::SQLite(), nhlscrape.globals$db_file)
   record <- DBI::dbGetQuery(conn, query)
   DBI::dbDisconnect(conn)
 
   return(record)
 }
 
-#' Returns the current path to the database file.
+#' Returns the current path to the local database file. By default this is located at
+#' system.file("extdata", "nhl.sqlite", package = "nhlscrape").
 #'
 #' @examples
 #' GetDbPath()
@@ -26,40 +33,46 @@ QueryDb <- function(query) {
 #'
 #' @export
 GetDbPath <- function() {
-  return(getOption("db_file"))
+  return(nhlscrape.globals$db_file)
 }
 
-#' Sets the current path to the database file.
+#' Sets the current path to the database file. This can be done to allow
+#' remote storage or different database files.
+#' Default is nhlscrape/extdata/nhl.sqlite.
 #'
 #' @param db_path A string containing the path to the db file.
 #'
 #' @examples
-#' SetDbPath(system.file("extdata", "nhl.sqlite", package = "nhlscrape"))
+#' \dontrun{
+#' SetDbPath("C:/Users/Adam/Documents/nhl.sqlite")
+#' }
 #'
 #' @return String containing the path to the database.
 #'
 #' @export
-SetDbPath <- function(db_path) {
-  return(options(db_file=db_path))
+SetDbPath <- function(db_path=system.file("extdata", "nhl.sqlite", package = "nhlscrape")) {
+  nhlscrape.globals$user_set_db <-TRUE
+  nhlscrape.globals$db_file <- db_path
 }
 
 #' Check if the events table exists, returns boolean
 #' @keywords internal
 EventsExists <- function() {
-  conn <- DBI::dbConnect(RSQLite::SQLite(), getOption("db_file"))
+  conn <- DBI::dbConnect(RSQLite::SQLite(), nhlscrape.globals$db_file)
   result <- DBI::dbListTables(conn)
   DBI::dbDisconnect(conn)
 
   return("events" %in% result)
 }
 
-#' Retrieve the team ID using the abbreviation, or full name of the team.
+#' Retrieve the team ID using the abbreviation, or full name of the team. Case independent.
 #'
 #' @param team_name String containing either abbreviation or full name.
 #'
 #' @return Int, team ID number.
 #'
 #' @examples
+#' SetDbPath()
 #' AddAllTeamsDb()
 #' GetTeamId("TOR")
 #' GetTeamId("Toronto Maple Leafs")
@@ -67,13 +80,13 @@ EventsExists <- function() {
 #' @export
 GetTeamId <- function(team_name) {
   # Expect name to be either full name or abbreviation
-  team_id <- rbind(QueryDb(paste("SELECT * FROM teams WHERE name='", team_name, "'", sep="")),
-                   QueryDb(paste("SELECT * FROM teams WHERE abbreviation='", team_name, "'", sep=""))
+  team_id <- rbind(QueryDb(paste("SELECT * FROM teams WHERE UPPER(name)='", toupper(team_name), "'", sep="")),
+                   QueryDb(paste("SELECT * FROM teams WHERE UPPER(abbreviation)='", toupper(team_name), "'", sep=""))
   )
   if (nrow(team_id) == 0) {
     stop("Could not find team with name: ", team_name)
   }
-  return(team_id$id)
+  return(team_id$pk)
 }
 
 #' @keywords internal
@@ -112,7 +125,7 @@ GetGameIdPrevious <- function(team_id) {
   return(r$teams$previousGameSchedule$dates[[1]]$games[[1]]$gamePk)
 }
 
-#' Gets a list of game ids for team_id in a specific date range.
+#' Gets a list of game ids for team_id in a specific date range, inclusive.
 #'
 #' @param team_id Team ID number.
 #' @param start_date Starting date of the games, inclusive. Format: "yyyy-mm-dd".
@@ -153,6 +166,25 @@ GetPlayerIdFromNumber <- function(number, player_list) {
   return(player_id)
 }
 
+#' Gets a player id from their name. Will only work for players that were active in a game that
+#' has already been added to the database.
+#'
+#' @param player_name String, players full name.
+#'
+#' @return Int, player id number.
+#'
+#' @examples
+#' SetDbPath()
+#' AddGameEvents(2019020001)
+#' GetPlayerId("John Tavares")
+#'
+#' @export
+GetPlayerId <- function(player_name) {
+  query <- paste("SELECT id FROM players WHERE UPPER(fullName)='", toupper(player_name), "'",
+                 sep="")
+  return(QueryDb(query)$id)
+}
+
 #' @keywords internal
 #' Helper function for checking if a play is even strength, checks the goalies
 #' and the total player count, returns boolean
@@ -170,7 +202,17 @@ IsEven <- function(row) {
   return(is_even)
 }
 
+#' @keywords internal
+#' Helper function to cut out rows based on conditional function, ex. IsEven
+CutRows <- function(rows, fun) {
+  return(rows[apply(rows, 1, fun),])
+}
+
 #' WIP - Get advanced statistics for player_id on team_id in a list of games.
+#' The current stats returned are:
+#' - Corsi For
+#' - Corsi Against
+#' - Shots
 #'
 #' @param player_id Player ID number.
 #' @param game_ids List of game ids to check. Must already be in the database.
@@ -179,66 +221,116 @@ IsEven <- function(row) {
 #' @return Dataframe containing a row of stats for even strength and for all situations.
 #'
 #' @examples
+#' SetDbPath()
 #' AddGameEvents(2019020001)
 #' GetPlayerStats(8475166, 2019020001, 10)
 #'
 #' @export
 GetPlayerStats <- function(player_id, game_ids, team_id) {
 
+  num_stats <- 3
+  num_situations <- 2
   # Initialize stats df
-  stats <- data.frame(matrix(ncol = 3, nrow = 0))
-  CF_all <- 0
-  CA_all <- 0
-  CF_even <- 0
-  CA_even <- 0
-
-  for (game_id in game_ids) {
-
-    # Corsi
-    #----------------------------------------------------------------
-    # CF all situations
-    query <- paste("SELECT * FROM events WHERE game_id=", game_id,
-                   " AND (playerType='Shooter' OR playerType='Scorer')",
-                   " AND players_on_ice LIKE '%", player_id, "%'",
-                   " AND player_team_id='", team_id, "'",
-                   sep="")
-    rows <- QueryDb(query)
-    CF_all <- CF_all + nrow(rows)
-
-    # CF in even strength situations
-    rows <- rows[apply(rows, 1, IsEven),]
-    CF_even <- CF_even + nrow(rows)
-
-    # CA in all situations
-    query <- paste("SELECT * FROM events WHERE player_id!=", player_id,
-                   " AND game_id=", game_id,
-                   " AND (playerType='Shooter' OR playerType='Scorer')",
-                   " AND players_on_ice LIKE '%", player_id, "%'",
-                   " AND player_team_id!='", team_id, "'",
-                   sep="")
-    rows <- QueryDb(query)
-    CA_all <- CA_all + nrow(rows)
-
-    # CA at even strength
-    rows <- rows[apply(rows, 1, IsEven),]
-    CA_even <- CA_even + nrow(rows)
-
-
-
-    # Shots
-    #----------------------------------------------------------------
-    # Shots All Situations
-  }
-
-
-  # Finalize stats df
-  # Corsi
-  corsi_all <- CF_all - CA_all
-  corsi_even <- CF_even - CA_even
-
-
-  stats <- rbind(stats, c(CF_all, CA_all, corsi_all), c(CF_even, CA_even, corsi_even))
-  names(stats) <- c("CF", "CA", "C")
+  stats <- data.frame(matrix(ncol = num_stats, nrow = num_situations))
+  names(stats) <- c("CF", "CA", "S")
   rownames(stats) <- c("All_situations", "Even_strength")
+
+
+  gids_str <- paste(game_ids, collapse=",")
+
+  # Corsi ----------------------------------------------------------------
+  # CF in all situations
+  query <- paste("SELECT * FROM events WHERE game_id IN (", gids_str, ")",
+                 " AND (playerType='Shooter' OR playerType='Scorer')",
+                 " AND players_on_ice LIKE '%", player_id, "%'",
+                 " AND player_team_id='", team_id, "'",
+                 sep="")
+  CF_all <- QueryDb(query)
+
+  # CA in all situations
+  query <- paste("SELECT * FROM events WHERE player_id!=", player_id,
+                 " AND game_id IN (", gids_str, ")",
+                 " AND (playerType='Shooter' OR playerType='Scorer')",
+                 " AND players_on_ice LIKE '%", player_id, "%'",
+                 " AND player_team_id!='", team_id, "'",
+                 sep="")
+  CA_all <- QueryDb(query)
+
+  # CF at even strength
+  CF_even <- CutRows(CF_all, IsEven)
+
+  # CA at even strength
+  CA_even <- CutRows(CA_all, IsEven)
+
+  stats["All_situations", c("CF", "CA")] <- c(nrow(CF_all), nrow(CA_all))
+  stats["Even_strength", c("CF", "CA")] <- c(nrow(CF_even), nrow(CA_even))
+
+  # Shots ----------------------------------------------------------------
+  # Shots All Situations
+  query <- paste("SELECT * FROM events WHERE game_id IN (", gids_str, ")",
+                 " AND player_id=", player_id,
+                 " AND (playerType='Shooter' OR playerType='Scorer')",
+                 " AND (result_eventTypeId='SHOT' OR result_eventTypeId='GOAL')",
+                 " AND about_periodType!='SHOOTOUT'",
+                 sep="")
+  S_all <- QueryDb(query)
+
+  # Shots at even strength
+  S_even <- CutRows(S_all, IsEven)
+
+
+  stats["All_situations", "S"] <- nrow(S_all)
+  stats["Even_strength", "S"] <- nrow(S_even)
+
+  # Fenwic ----------------------------------------------------------------
+  # FF in all situations
+  query <- paste("SELECT * FROM events WHERE game_id IN (", gids_str, ")",
+                 " AND result_eventTypeId!='BLOCKED_SHOT'",
+                 " AND (playerType='Shooter' OR playerType='Scorer')",
+                 " AND players_on_ice LIKE '%", player_id, "%'",
+                 " AND player_team_id='", team_id, "'",
+                 sep="")
+  FF_all <- QueryDb(query)
+
+  #FF at even strength NOT MATCHING UP!?!?
+  FF_even <- CutRows(FF_all, IsEven)
+
+  #FA in all situations
+  query <- paste("SELECT * FROM events WHERE player_id!=", player_id,
+                 " AND game_id IN (", gids_str, ")",
+                 " AND result_eventTypeId!='BLOCKED_SHOT'",
+                 " AND (playerType='Shooter' OR playerType='Scorer')",
+                 " AND players_on_ice LIKE '%", player_id, "%'",
+                 " AND player_team_id!='", team_id, "'",
+                 sep="")
+  FA_all <- QueryDb(query)
+
+  #FA at even strength
+  FA_even <- CutRows(FA_all, IsEven)
+
+  # Goals ----------------------------------------------------------------
+  # GF in all situations
+  query <- paste("SELECT * FROM events  WHERE game_id IN (", gids_str, ")",
+                 " AND playerType='Scorer'",
+                 " AND players_on_ice LIKE '%", player_id, "%'",
+                 " AND player_team_id='", team_id, "'",
+                 sep="")
+  GF_all <- QueryDb(query)
+
+  #GF at even strength
+  GF_even <- CutRows(GF_all, IsEven)
+
+  # GA in all situations
+  query <- paste("SELECT * FROM events  WHERE game_id IN (", gids_str, ")",
+                 " AND playerType='Scorer'",
+                 " AND players_on_ice LIKE '%", player_id, "%'",
+                 " AND player_team_id!='", team_id, "'",
+                 sep="")
+  GA_all <- QueryDb(query)
+
+  #GA at even strength
+  GA_even <- CutRows(GA_all, IsEven)
+
+
   return(stats)
 }

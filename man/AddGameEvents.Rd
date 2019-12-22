@@ -2,7 +2,10 @@
 % Please edit documentation in R/db_manipulation.R
 \name{AddGameEvents}
 \alias{AddGameEvents}
-\title{Add all events from a 'game_id' to the 'events' table}
+\title{Add all events from a game_id to the 'events' table. Also adds all players in the
+game to the 'players' table to allow for searching by name to retrieve player_id.
+Finally, adds the total time on ice for each player to the 'player_toi' table. This
+allows for calculation of certain statistics based on time usage.}
 \usage{
 AddGameEvents(game_ids)
 }
@@ -10,9 +13,10 @@ AddGameEvents(game_ids)
 \item{game_ids}{List of identifying numbers for the game. Use GetGameIds to find.}
 }
 \description{
-Add all events from a 'game_id' to the 'events' table
+!Will not write if game already exists in the database!
 }
 \examples{
+SetDbPath()
 AddGameEvents(2019020001)
 
 }
