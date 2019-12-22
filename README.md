@@ -3,12 +3,12 @@ A package for scraping the nhl API and HTML reports to build a database. Can be 
 
 ## Usage
 To use this package:
-1. Import 'it'nhlscraper' and a SQL database will be created in the package directory. It can be found and set using GetDbPath and SetDbPath commands.
-2. Find team_id using the GetTeamId function.
-3. Find game_ids using the GetGameIdRange function.
-4. Add game reports to the database using GameEvents.
+1. Import 'nhlscraper' and run SetDbPath to set the location for the database file.
+2. Use AddAllTeams() and the find team_id using the GetTeamId function.
+3. Find game_ids using the GetGameIdRange() function.
+4. Add game reports to the database using AddGameEvents().
 5. Find a player_id using the GetPlayerId('player_name') function.
-6. Get player statistics using GetPlayerStats. You can also manually query the database using QueryDb.
+6. Get player statistics using GetPlayerStats(). You can also manually query the database using QueryDb.
 
 
 Example:
