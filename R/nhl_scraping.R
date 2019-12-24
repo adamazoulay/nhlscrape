@@ -1,4 +1,13 @@
-#' Calls the api with call, returns the html
+#' Send a SQL query to the database. Retruns the SQL result as a data.frame. Useful for
+#' seeing the structure of the database for construction of queries.
+#'
+#' @param call A string containing the api query.
+#'
+#' @examples
+#' GetApiJson("game/2019020001/feed/live")
+#'
+#' @return A list containing all the data in the api call.
+#'
 #' @export
 GetApiJson <- function(call) {
   request <- paste(nhlscrape.globals$api_url, call, sep="")
