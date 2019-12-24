@@ -24,7 +24,6 @@ QueryDb <- function(query) {
 }
 
 #' Returns the current path to the local database file. By default this is located at
-#' system.file("extdata", "nhl.sqlite", package = "nhlscrape").
 #'
 #' @examples
 #' GetDbPath()
