@@ -205,6 +205,12 @@ AddGameEvents <- function(game_ids) {
           # Select first row
           tmp_row <- tmp_event[1,]
 
+          # Sometimes we have to take the last row, like with the start of
+          # period faceoffs
+          if (is.na(tmp_row$visitor_p1)) {
+            tmp_row <- tmp_event[nrow(tmp_event),]
+          }
+
           # Add each player id to the current row
           df <- cbind(df, "players_on_ice"=paste(
             GetPlayerIdFromNumber(tmp_row$visitor_p1, away_roster),

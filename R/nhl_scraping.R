@@ -1,5 +1,5 @@
-#' @keywords internal
 #' Calls the api with call, returns the html
+#' @export
 GetApiJson <- function(call) {
   request <- paste(nhlscrape.globals$api_url, call, sep="")
   r <- httr::GET(request)
@@ -27,7 +27,7 @@ GetGameLiveFeedHtml <- function(game_id) {
 
   id <- paste("PL", substring(game_id, 5), sep="")
 
-  url <- paste("http://www.nhl.com/scores/htmlreports/", years, "/", id, ".HTM", sep="")
+  url <- paste(nhlscrape.globals$htmlrep_url, years, "/", id, ".HTM", sep="")
 
   content <- xml2::read_html(url)
 

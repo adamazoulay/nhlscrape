@@ -6,8 +6,9 @@
 remote storage or different database files.
 Default is nhlscrape/extdata/nhl.sqlite.}
 \usage{
-SetDbPath(db_path = system.file("extdata", "nhl.sqlite", package =
-  "nhlscrape"))
+SetDbPath(
+  db_path = system.file("extdata", "nhl.sqlite", package = "nhlscrape")
+)
 }
 \arguments{
 \item{db_path}{A string containing the path to the db file.}

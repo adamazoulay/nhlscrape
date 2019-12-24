@@ -5,6 +5,7 @@ nhlscrape.globals <- new.env(parent=emptyenv())
   nhlscrape.globals$user_set_db = FALSE
   nhlscrape.globals$db_file <- system.file("extdata", "nhl.sqlite", package = "nhlscrape")
   nhlscrape.globals$api_url <- "https://statsapi.web.nhl.com/api/v1/"
+  nhlscrape.globals$htmlrep_url <- "http://www.nhl.com/scores/htmlreports/"
 
   invisible()
 }
