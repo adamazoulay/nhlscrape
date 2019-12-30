@@ -207,6 +207,42 @@ CutRows <- function(rows, fun) {
   return(rows[apply(rows, 1, fun),])
 }
 
+#' @export
+GetHeatmapCoords <- function(team_id, gids, events_list) {
+  for (game_id in gids) {
+    query <- paste("SELECT home_team, away_team FROM game_info WHERE game_id=", game_id, sep="")
+    row <- QueryDb(query)
+
+    if (GetTeamId(row$home_team) == team_id) {
+      team_home <- TRUE
+    } else {
+      team_home <- FALSE
+    }
+
+    query <- paste("SELECT DISTINCT coordinates_x,
+    coordinates_y,
+    result_description,
+    about_period,
+    about_periodTime,
+    game_id,
+                   result_event FROM events WHERE game_id=", game_id,
+                   " AND team_id=", team_id,
+                   " AND result_event IN (", events_list, ")",
+                   sep="")
+    rows <- QueryDb(query)
+    for (i in 1:nrow(rows)) {
+      if (team_home && rows[i,]$about_period == 2) {
+        # Flip second period
+        rows[i,]$coordinates_x <- -1 * rows[i,]$coordinates_x
+      } else if (!team_home && (rows[i,]$about_period == 1 || rows[i,]$about_period == 3)) {
+        # Flip first and last period
+        rows[i,]$coordinates_x <- -1 * rows[i,]$coordinates_x
+      }
+    }
+  }
+  return(rows)
+}
+
 #' WIP - Get advanced statistics for player_id on team_id in a list of games.
 #' The current stats returned are:
 #' - Corsi For
