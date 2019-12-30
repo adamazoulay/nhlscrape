@@ -118,6 +118,23 @@ AddRoster <- function(player_list, game_id) {
   AddDb("player_toi", toi_df)
 }
 
+#' @keywords internal
+#' Add some game metadata to the game_info table. Used for plotting and such
+AddGameInfo <- function(game_data, game_id) {
+
+  # Fields
+  season <- game_data$gameData$game$season
+  type <- game_data$gameData$game$type # Regular season, playoffs
+  date_time <- game_data$gameData$datetime$dateTime
+  home_team <- game_data$gameData$teams$home$name
+  away_team <- game_data$gameData$teams$away$name
+  venue <- game_data$gameData$venue$name
+
+  row <- data.frame(game_id, season, type, date_time, home_team, away_team, venue)
+  row <- cbind("pk"=row$game_id, row)
+  AddDb("game_info", row)
+}
+
 
 #' Add all events from a game_id to the 'events' table. Also adds all players in the
 #' game to the 'players' table to allow for searching by name to retrieve player_id.
@@ -140,6 +157,8 @@ AddGameEvents <- function(game_ids) {
       next
     }
 
+    message("Adding events for game_id:", game_id)
+
     request <- paste("game/", game_id, "/feed/live", sep="")
     df <- GetApiJson(request)
 
@@ -150,8 +169,12 @@ AddGameEvents <- function(game_ids) {
     away_roster <- boxscore$teams$away$players
     player_list <- c(home_roster, away_roster)
 
-    # Add players to players table and boxscores to the player_boxscores table
+    # Add players to players table and boxscores to the players table
+    # and add players time-on-ice to the players_toi table
     AddRoster(player_list, game_id)
+
+    # Add game metadata info to the game_info table
+    AddGameInfo(df, game_id)
 
     players <- df$liveData$plays$allPlays$players
     plays <- df$liveData$plays$allPlays
