@@ -79,7 +79,7 @@ EventsExists <- function() {
 #' @export
 GetTeamId <- function(team_name) {
   # Expect name to be either full name or abbreviation
-  team_id <- rbind(QueryDb(paste("SELECT * FROM teams WHERE UPPER(name)='", toupper(team_name), "'", sep="")),
+  team_id <- rbind(QueryDb(paste("SELECT * FROM teams WHERE name='", team_name, "'", sep="")),
                    QueryDb(paste("SELECT * FROM teams WHERE UPPER(abbreviation)='", toupper(team_name), "'", sep=""))
   )
   if (nrow(team_id) == 0) {
@@ -209,6 +209,7 @@ CutRows <- function(rows, fun) {
 
 #' @export
 GetHeatmapCoords <- function(team_id, gids, events_list) {
+  all_rows <- 0
   for (game_id in gids) {
     query <- paste("SELECT home_team, away_team FROM game_info WHERE game_id=", game_id, sep="")
     row <- QueryDb(query)
@@ -224,6 +225,7 @@ GetHeatmapCoords <- function(team_id, gids, events_list) {
     result_description,
     about_period,
     about_periodTime,
+    about_dateTime,
     game_id,
                    result_event FROM events WHERE game_id=", game_id,
                    " AND team_id=", team_id,
@@ -231,16 +233,21 @@ GetHeatmapCoords <- function(team_id, gids, events_list) {
                    sep="")
     rows <- QueryDb(query)
     for (i in 1:nrow(rows)) {
-      if (team_home && rows[i,]$about_period == 2) {
+      if (team_home && rows[i,]$about_period %% 2 == 0) {
         # Flip second period
         rows[i,]$coordinates_x <- -1 * rows[i,]$coordinates_x
-      } else if (!team_home && (rows[i,]$about_period == 1 || rows[i,]$about_period == 3)) {
+      } else if (!team_home && rows[i,]$about_period %% 2 == 1) {
         # Flip first and last period
         rows[i,]$coordinates_x <- -1 * rows[i,]$coordinates_x
       }
     }
+    if (typeof(all_rows) == "double") {
+      all_rows <- rows
+    } else {
+      all_rows <- rbind(all_rows, rows)
+    }
   }
-  return(rows)
+  return(all_rows)
 }
 
 #' WIP - Get advanced statistics for player_id on team_id in a list of games.
