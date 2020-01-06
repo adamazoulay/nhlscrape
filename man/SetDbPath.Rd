@@ -2,24 +2,21 @@
 % Please edit documentation in R/db_retrieval.R
 \name{SetDbPath}
 \alias{SetDbPath}
-\title{Sets the current path to the database file. This can be done to allow
-remote storage or different database files.
-Default is nhlscrape/extdata/nhl.sqlite.}
+\title{Set database location on system}
 \usage{
 SetDbPath(
   db_path = system.file("extdata", "nhl.sqlite", package = "nhlscrape")
 )
 }
 \arguments{
-\item{db_path}{A string containing the path to the db file.}
+\item{db_path}{Character, contains the system path to the db file}
 }
 \value{
-String containing the path to the database.
+Character, contains the path to the database.
 }
 \description{
-Sets the current path to the database file. This can be done to allow
-remote storage or different database files.
-Default is nhlscrape/extdata/nhl.sqlite.
+Sets the path to the database file. This function must be run to allow operation
+of other functions which require saving to a database
 }
 \examples{
 \dontrun{

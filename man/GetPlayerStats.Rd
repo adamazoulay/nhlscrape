@@ -2,30 +2,27 @@
 % Please edit documentation in R/db_retrieval.R
 \name{GetPlayerStats}
 \alias{GetPlayerStats}
-\title{WIP - Get advanced statistics for player_id on team_id in a list of games.
-The current stats returned are:
-- Corsi For
-- Corsi Against
-- Shots}
+\title{WIP - Get advanced statistics for player_id on team_id in a list of games.}
 \usage{
 GetPlayerStats(player_id, game_ids, team_id)
 }
 \arguments{
-\item{player_id}{Player ID number.}
+\item{player_id}{Int, player ID number}
 
-\item{game_ids}{List of game ids to check. Must already be in the database.}
+\item{game_ids}{List, game ids to check. Must already be in the database}
 
-\item{team_id}{The ID of the team the player plays for.}
+\item{team_id}{Int, the ID of the team the player plays for}
 }
 \value{
-Dataframe containing a row of stats for even strength and for all situations.
+List, contains a row of stats for even strength and for all situations
 }
 \description{
-WIP - Get advanced statistics for player_id on team_id in a list of games.
-The current stats returned are:
-- Corsi For
-- Corsi Against
+This function will search all games in game_ids and return a list of stats for
+the player id selected. The current stats returned are:
 - Shots
+- Goals
+- Corsi
+- Fenwick
 }
 \examples{
 SetDbPath()

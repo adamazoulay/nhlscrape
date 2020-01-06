@@ -2,20 +2,19 @@
 % Please edit documentation in R/db_retrieval.R
 \name{QueryDb}
 \alias{QueryDb}
-\title{Send a SQL query to the database. Retruns the SQL result as a data.frame. Useful for
-seeing the structure of the database for construction of queries.}
+\title{Send query to database}
 \usage{
 QueryDb(query)
 }
 \arguments{
-\item{query}{A string containing the SQL query.}
+\item{query}{A string containing the SQL query}
 }
 \value{
-Data.frame containing the SQL query result.
+List, contains the SQL query result.
 }
 \description{
 Send a SQL query to the database. Retruns the SQL result as a data.frame. Useful for
-seeing the structure of the database for construction of queries.
+seeing the structure of the database for construction of queries
 }
 \examples{
 SetDbPath()

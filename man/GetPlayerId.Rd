@@ -2,20 +2,19 @@
 % Please edit documentation in R/db_retrieval.R
 \name{GetPlayerId}
 \alias{GetPlayerId}
-\title{Gets a player id from their name. Will only work for players that were active in a game that
-has already been added to the database.}
+\title{Search player id using name}
 \usage{
 GetPlayerId(player_name)
 }
 \arguments{
-\item{player_name}{String, players full name.}
+\item{player_name}{character, players full name}
 }
 \value{
-Int, player id number.
+int, player id number
 }
 \description{
 Gets a player id from their name. Will only work for players that were active in a game that
-has already been added to the database.
+has already been added to the database
 }
 \examples{
 SetDbPath()

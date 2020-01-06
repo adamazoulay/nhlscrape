@@ -1,7 +1,9 @@
-#' Send a SQL query to the database. Retruns the SQL result as a data.frame. Useful for
-#' seeing the structure of the database for construction of queries.
+#' Send query to database
 #'
-#' @param query A string containing the SQL query.
+#' Send a SQL query to the database. Retruns the SQL result as a data.frame. Useful for
+#' seeing the structure of the database for construction of queries
+#'
+#' @param query A string containing the SQL query
 #'
 #' @examples
 #' SetDbPath()
@@ -9,7 +11,7 @@
 #' QueryDb("SELECT * FROM events")
 #' QueryDb("SELECT result_description FROM events WHERE game_id=2019020001 AND player_id=8475166")
 #'
-#' @return Data.frame containing the SQL query result.
+#' @return List, contains the SQL query result.
 #'
 #' @export
 QueryDb <- function(query) {
@@ -23,30 +25,33 @@ QueryDb <- function(query) {
   return(record)
 }
 
-#' Returns the current path to the local database file. By default this is located at
+#' Retrieve database location on system
+#'
+#' Returns the current path to the local database file
 #'
 #' @examples
 #' GetDbPath()
 #'
-#' @return String containing the path to the database.
+#' @return Character, system path to the database.
 #'
 #' @export
 GetDbPath <- function() {
   return(nhlscrape.globals$db_file)
 }
 
-#' Sets the current path to the database file. This can be done to allow
-#' remote storage or different database files.
-#' Default is nhlscrape/extdata/nhl.sqlite.
+#' Set database location on system
 #'
-#' @param db_path A string containing the path to the db file.
+#' Sets the path to the database file. This function must be run to allow operation
+#' of other functions which require saving to a database
+#'
+#' @param db_path Character, contains the system path to the db file
 #'
 #' @examples
 #' \dontrun{
 #' SetDbPath("C:/Users/Adam/Documents/nhl.sqlite")
 #' }
 #'
-#' @return String containing the path to the database.
+#' @return Character, contains the path to the database.
 #'
 #' @export
 SetDbPath <- function(db_path=system.file("extdata", "nhl.sqlite", package = "nhlscrape")) {
@@ -54,8 +59,8 @@ SetDbPath <- function(db_path=system.file("extdata", "nhl.sqlite", package = "nh
   nhlscrape.globals$db_file <- db_path
 }
 
-#' Check if the events table exists, returns boolean
 #' @keywords internal
+#' Check if the events table exists, returns boolean
 EventsExists <- function() {
   conn <- DBI::dbConnect(RSQLite::SQLite(), nhlscrape.globals$db_file)
   result <- DBI::dbListTables(conn)
@@ -64,9 +69,11 @@ EventsExists <- function() {
   return("events" %in% result)
 }
 
-#' Retrieve the team ID using the abbreviation, or full name of the team. Case independent.
+#' Search for team id from team name
 #'
-#' @param team_name String containing either abbreviation or full name.
+#' Retrieve the team ID using the abbreviation, or full name of the team
+#'
+#' @param team_name Character, contains either abbreviation or full name
 #'
 #' @return Int, team ID number.
 #'
@@ -74,6 +81,7 @@ EventsExists <- function() {
 #' SetDbPath()
 #' AddAllTeamsDb()
 #' GetTeamId("TOR")
+#' GetTeamId("tor")
 #' GetTeamId("Toronto Maple Leafs")
 #'
 #' @export
@@ -124,17 +132,20 @@ GetGameIdPrevious <- function(team_id) {
   return(r$teams$previousGameSchedule$dates[[1]]$games[[1]]$gamePk)
 }
 
-#' Gets a list of game ids for team_id in a specific date range, inclusive.
+#' Find game ids for a specific team and date range
 #'
-#' @param team_id Team ID number.
-#' @param start_date Starting date of the games, inclusive. Format: "yyyy-mm-dd".
-#' @param end_date Ending date of the games, inclusive. Format: "yyyy-mm-dd".
+#' Gets a list of game ids for team_id in a specific date range, inclusive
 #'
-#' @return List of ints, each element is a game ID in selected range.
+#' @param team_id Int, team ID number
+#' @param start_date Starting date of the games, inclusive. Format: "yyyy-mm-dd"
+#' @param end_date Ending date of the games, inclusive. Format: "yyyy-mm-dd"
+#'
+#' @return List of ints, each element is a game ID in selected range
 #'
 #' @examples
+#' \dontrun{
 #' GetGameIdRange(10, "2019-09-30", "2019-12-16")
-#'
+#' }
 #' @export
 GetGameIdRange <- function(team_id, start_date, end_date) {
   request <- paste("schedule?teamId=", team_id, sep="")
@@ -165,12 +176,14 @@ GetPlayerIdFromNumber <- function(number, player_list) {
   return(player_id)
 }
 
+#' Search player id using name
+#'
 #' Gets a player id from their name. Will only work for players that were active in a game that
-#' has already been added to the database.
+#' has already been added to the database
 #'
-#' @param player_name String, players full name.
+#' @param player_name character, players full name
 #'
-#' @return Int, player id number.
+#' @return int, player id number
 #'
 #' @examples
 #' SetDbPath()
@@ -207,6 +220,24 @@ CutRows <- function(rows, fun) {
   return(rows[apply(rows, 1, fun),])
 }
 
+#' Get the heatmap coordinates for certain events in the database
+#'
+#' This function will take in a team_id and a list of game_ids, and a list of
+#' events to looks for, and resturn a list of x, y coordinates, transformed to
+#' be attacking zone on the left of the rink, and defending zone on the right of the rink.
+#' Some anomalies due to how the NHL tracks positions
+#'
+#' @param team_id Int, id of the team to transfrom for
+#' @param gids Int, list of game ids to check for events
+#' @param events_list Character, list of strings to select from the database.
+#' Note that events must be quoted in single quotes inside the string
+#'
+#' @return List, containing all x, y pairs for events and additional metadata
+#'
+#' @examples
+#' SetDbPath()
+#' GetHeatmapCoords(10, 2019020001, c("'Goal'", "'Shot'"))
+#'
 #' @export
 GetHeatmapCoords <- function(team_id, gids, events_list) {
   all_rows <- 0
@@ -251,16 +282,20 @@ GetHeatmapCoords <- function(team_id, gids, events_list) {
 }
 
 #' WIP - Get advanced statistics for player_id on team_id in a list of games.
-#' The current stats returned are:
-#' - Corsi For
-#' - Corsi Against
+#'
+#'
+#' This function will search all games in game_ids and return a list of stats for
+#' the player id selected. The current stats returned are:
 #' - Shots
+#' - Goals
+#' - Corsi
+#' - Fenwick
 #'
-#' @param player_id Player ID number.
-#' @param game_ids List of game ids to check. Must already be in the database.
-#' @param team_id The ID of the team the player plays for.
+#' @param player_id Int, player ID number
+#' @param game_ids List, game ids to check. Must already be in the database
+#' @param team_id Int, the ID of the team the player plays for
 #'
-#' @return Dataframe containing a row of stats for even strength and for all situations.
+#' @return List, contains a row of stats for even strength and for all situations
 #'
 #' @examples
 #' SetDbPath()

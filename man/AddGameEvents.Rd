@@ -2,18 +2,19 @@
 % Please edit documentation in R/db_manipulation.R
 \name{AddGameEvents}
 \alias{AddGameEvents}
-\title{Add all events from a game_id to the 'events' table. Also adds all players in the
-game to the 'players' table to allow for searching by name to retrieve player_id.
-Finally, adds the total time on ice for each player to the 'player_toi' table. This
-allows for calculation of certain statistics based on time usage.}
+\title{Adds all game events for game_id to the database for analysis}
 \usage{
 AddGameEvents(game_ids)
 }
 \arguments{
-\item{game_ids}{List of identifying numbers for the game. Use GetGameIds to find.}
+\item{game_ids}{List, list of game_ids. Use GetGameIdRange to find}
 }
 \description{
-!Will not write if game already exists in the database!
+Add all events from a game_id to the 'events' table. Also adds all players in the
+game to the 'players' table to allow for searching by name to retrieve player_id.
+Finally, adds the total time on ice for each player to the 'player_toi' table. This
+allows for calculation of certain statistics based on time usage.
+Will not write if game already exists in the database!
 }
 \examples{
 SetDbPath()

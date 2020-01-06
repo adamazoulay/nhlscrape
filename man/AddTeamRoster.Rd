@@ -2,19 +2,18 @@
 % Please edit documentation in R/db_manipulation.R
 \name{AddTeamRoster}
 \alias{AddTeamRoster}
-\title{Add a teams roster to the 'roster' table for season. Can be accessed with a primary key
-of 'season_teamid_personid'.}
+\title{Adds rosters for team id and a specific season}
 \usage{
 AddTeamRoster(team_id, season)
 }
 \arguments{
-\item{team_id}{Identity number for the team. Use GetTeamId to find.}
+\item{team_id}{Int, identity number for the team. Use GetTeamId to find}
 
-\item{season}{A year range you want to add.}
+\item{season}{Int, A year range you want to add}
 }
 \description{
 Add a teams roster to the 'roster' table for season. Can be accessed with a primary key
-of 'season_teamid_personid'.
+of 'season_teamid_personid'
 }
 \examples{
 SetDbPath()

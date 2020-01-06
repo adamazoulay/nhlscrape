@@ -11,7 +11,7 @@ ExistsInDb <- function(table, pk) {
 }
 
 #' @keywords internal
-#' Add the dataframe to the database under 'table'
+#' Add the dataframe to the database under 'table
 AddDb <- function(table, df) {
   # Check that we have a user defined database. If not, stop with error.
   if (nhlscrape.globals$user_set_db == FALSE){
@@ -39,9 +39,10 @@ AddDb <- function(table, df) {
 }
 
 
-#' Add all teams to the database. The teams will get stored in the database in the 'teams' table.
+#' Add team metadata to the database
 #'
-#' !Will not write if teams already exist in the database!
+#' Add all teams to the database. The teams will get stored in the database in the 'teams' table.
+#' Will not write if teams already exist in the database!
 #'
 #' @examples
 #' SetDbPath()
@@ -63,11 +64,13 @@ AddAllTeamsDb <- function() {
   AddDb("teams", df)
 }
 
-#' Add a teams roster to the 'roster' table for season. Can be accessed with a primary key
-#' of 'season_teamid_personid'.
+#' Adds rosters for team id and a specific season
 #'
-#' @param team_id Identity number for the team. Use GetTeamId to find.
-#' @param season A year range you want to add.
+#' Add a teams roster to the 'roster' table for season. Can be accessed with a primary key
+#' of 'season_teamid_personid'
+#'
+#' @param team_id Int, identity number for the team. Use GetTeamId to find
+#' @param season Int, A year range you want to add
 #'
 #' @examples
 #' SetDbPath()
@@ -136,14 +139,15 @@ AddGameInfo <- function(game_data, game_id) {
 }
 
 
+#' Adds all game events for game_id to the database for analysis
+#'
 #' Add all events from a game_id to the 'events' table. Also adds all players in the
 #' game to the 'players' table to allow for searching by name to retrieve player_id.
 #' Finally, adds the total time on ice for each player to the 'player_toi' table. This
 #' allows for calculation of certain statistics based on time usage.
+#' Will not write if game already exists in the database!
 #'
-#' !Will not write if game already exists in the database!
-#'
-#' @param game_ids List of identifying numbers for the game. Use GetGameIds to find.
+#' @param game_ids List, list of game_ids. Use GetGameIdRange to find
 #'
 #' @examples
 #' SetDbPath()

@@ -2,15 +2,15 @@
 % Please edit documentation in R/db_retrieval.R
 \name{GetDbPath}
 \alias{GetDbPath}
-\title{Returns the current path to the local database file. By default this is located at}
+\title{Retrieve database location on system}
 \usage{
 GetDbPath()
 }
 \value{
-String containing the path to the database.
+Character, system path to the database.
 }
 \description{
-Returns the current path to the local database file. By default this is located at
+Returns the current path to the local database file
 }
 \examples{
 GetDbPath()

@@ -1,12 +1,13 @@
-#' Send a SQL query to the database. Retruns the SQL result as a data.frame. Useful for
-#' seeing the structure of the database for construction of queries.
+#' Call the nhl api and parse the retun
 #'
-#' @param call A string containing the api query.
+#' Send a call to the 'NHL' api and get the result back in a list
+#'
+#' @param call character, contains the api query
 #'
 #' @examples
 #' GetApiJson("game/2019020001/feed/live")
 #'
-#' @return A list containing all the data in the api call.
+#' @return list, contains all the data in the api call
 #'
 #' @export
 GetApiJson <- function(call) {

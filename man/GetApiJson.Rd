@@ -2,20 +2,18 @@
 % Please edit documentation in R/nhl_scraping.R
 \name{GetApiJson}
 \alias{GetApiJson}
-\title{Send a SQL query to the database. Retruns the SQL result as a data.frame. Useful for
-seeing the structure of the database for construction of queries.}
+\title{Call the nhl api and parse the retun}
 \usage{
 GetApiJson(call)
 }
 \arguments{
-\item{call}{A string containing the api query.}
+\item{call}{character, contains the api query}
 }
 \value{
-A list containing all the data in the api call.
+list, contains all the data in the api call
 }
 \description{
-Send a SQL query to the database. Retruns the SQL result as a data.frame. Useful for
-seeing the structure of the database for construction of queries.
+Send a call to the 'NHL' api and get the result back in a list
 }
 \examples{
 GetApiJson("game/2019020001/feed/live")

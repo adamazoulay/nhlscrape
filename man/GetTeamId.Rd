@@ -2,23 +2,24 @@
 % Please edit documentation in R/db_retrieval.R
 \name{GetTeamId}
 \alias{GetTeamId}
-\title{Retrieve the team ID using the abbreviation, or full name of the team. Case independent.}
+\title{Search for team id from team name}
 \usage{
 GetTeamId(team_name)
 }
 \arguments{
-\item{team_name}{String containing either abbreviation or full name.}
+\item{team_name}{Character, contains either abbreviation or full name}
 }
 \value{
 Int, team ID number.
 }
 \description{
-Retrieve the team ID using the abbreviation, or full name of the team. Case independent.
+Retrieve the team ID using the abbreviation, or full name of the team
 }
 \examples{
 SetDbPath()
 AddAllTeamsDb()
 GetTeamId("TOR")
+GetTeamId("tor")
 GetTeamId("Toronto Maple Leafs")
 
 }
