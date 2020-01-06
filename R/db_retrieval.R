@@ -229,14 +229,14 @@ CutRows <- function(rows, fun) {
 #'
 #' @param team_id Int, id of the team to transfrom for
 #' @param gids Int, list of game ids to check for events
-#' @param events_list Character, list of strings to select from the database.
+#' @param events_list Character, string of events to select from the database
 #' Note that events must be quoted in single quotes inside the string
 #'
 #' @return List, containing all x, y pairs for events and additional metadata
 #'
 #' @examples
 #' SetDbPath()
-#' GetHeatmapCoords(10, 2019020001, c("'Goal'", "'Shot'"))
+#' GetHeatmapCoords(10, 2019020001, "'Shot', 'Goal'")
 #'
 #' @export
 GetHeatmapCoords <- function(team_id, gids, events_list) {
