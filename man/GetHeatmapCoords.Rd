@@ -11,7 +11,7 @@ GetHeatmapCoords(team_id, gids, events_list)
 
 \item{gids}{Int, list of game ids to check for events}
 
-\item{events_list}{Character, list of strings to select from the database.
+\item{events_list}{Character, string of events to select from the database
 Note that events must be quoted in single quotes inside the string}
 }
 \value{
@@ -25,6 +25,6 @@ Some anomalies due to how the NHL tracks positions
 }
 \examples{
 SetDbPath()
-GetHeatmapCoords(10, 2019020001, c("'Goal'", "'Shot'"))
+GetHeatmapCoords(10, 2019020001, "'Shot', 'Goal'")
 
 }
