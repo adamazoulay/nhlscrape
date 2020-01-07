@@ -32,3 +32,7 @@ player_id <- GetPlayerId("john tavares")
 
 stats <- GetPlayerStats(player_id, gids, team_id)
 ```
+
+## Example Shiny App
+You can see an example of the heatmap function being plotted in this demo shiny app at:
+https://aazoulay.shinyapps.io/nhl_shiny/
