@@ -16,7 +16,7 @@ Add a teams roster to the 'roster' table for season. Can be accessed with a prim
 of 'season_teamid_personid'
 }
 \examples{
-SetDbPath()
+SetDbPath(example = TRUE)
 AddTeamRoster(10, 20192020)
 
 }

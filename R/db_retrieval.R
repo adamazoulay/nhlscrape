@@ -6,7 +6,7 @@
 #' @param query A string containing the SQL query
 #'
 #' @examples
-#' SetDbPath()
+#' SetDbPath(example = TRUE)
 #' AddGameEvents(2019020001)
 #' QueryDb("SELECT * FROM events")
 #' QueryDb("SELECT result_description FROM events WHERE game_id=2019020001 AND player_id=8475166")
@@ -45,16 +45,21 @@ GetDbPath <- function() {
 #' of other functions which require saving to a database
 #'
 #' @param db_path Character, contains the system path to the db file
+#' @param example boolean, set to FALSE by default, if TRUE it will
+#' copy the example db file and set the path pointing to it
 #'
 #' @examples
-#' \dontrun{
-#' SetDbPath("C:/Users/Adam/Documents/nhl.sqlite")
-#' }
+#' SetDbPath(example = TRUE)
 #'
 #' @return Character, contains the path to the database.
 #'
 #' @export
-SetDbPath <- function(db_path=system.file("extdata", "nhl.sqlite", package = "nhlscrape")) {
+SetDbPath <- function(db_path="nhl.sqlite", example=FALSE) {
+  if (example) {
+    test_folder = tempdir()
+    file.copy(system.file("extdata", "nhl.sqlite", package = "nhlscrape"), test_folder)
+    db_path = file.path(test_folder, "nhl.sqlite")
+  }
   nhlscrape.globals$user_set_db <-TRUE
   nhlscrape.globals$db_file <- db_path
 }
@@ -78,7 +83,7 @@ EventsExists <- function() {
 #' @return Int, team ID number.
 #'
 #' @examples
-#' SetDbPath()
+#' SetDbPath(example = TRUE)
 #' AddAllTeamsDb()
 #' GetTeamId("TOR")
 #' GetTeamId("tor")
@@ -143,7 +148,7 @@ GetGameIdPrevious <- function(team_id) {
 #' @return List of ints, each element is a game ID in selected range
 #'
 #' @examples
-#' \dontrun{
+#' \donttest{
 #' GetGameIdRange(10, "2019-09-30", "2019-12-16")
 #' }
 #' @export
@@ -186,7 +191,7 @@ GetPlayerIdFromNumber <- function(number, player_list) {
 #' @return int, player id number
 #'
 #' @examples
-#' SetDbPath()
+#' SetDbPath(example = TRUE)
 #' AddGameEvents(2019020001)
 #' GetPlayerId("John Tavares")
 #'
@@ -235,7 +240,7 @@ CutRows <- function(rows, fun) {
 #' @return List, containing all x, y pairs for events and additional metadata
 #'
 #' @examples
-#' SetDbPath()
+#' SetDbPath(example = TRUE)
 #' GetHeatmapCoords(10, 2019020001, "'Shot', 'Goal'")
 #'
 #' @export
@@ -298,7 +303,7 @@ GetHeatmapCoords <- function(team_id, gids, events_list) {
 #' @return List, contains a row of stats for even strength and for all situations
 #'
 #' @examples
-#' SetDbPath()
+#' SetDbPath(example = TRUE)
 #' AddGameEvents(2019020001)
 #' GetPlayerStats(8475166, 2019020001, 10)
 #'

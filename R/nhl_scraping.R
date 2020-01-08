@@ -5,7 +5,9 @@
 #' @param call character, contains the api query
 #'
 #' @examples
+#' \donttest{
 #' GetApiJson("game/2019020001/feed/live")
+#' }
 #'
 #' @return list, contains all the data in the api call
 #'

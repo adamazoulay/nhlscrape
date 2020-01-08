@@ -4,12 +4,13 @@
 \alias{SetDbPath}
 \title{Set database location on system}
 \usage{
-SetDbPath(
-  db_path = system.file("extdata", "nhl.sqlite", package = "nhlscrape")
-)
+SetDbPath(db_path = "nhl.sqlite", example = FALSE)
 }
 \arguments{
 \item{db_path}{Character, contains the system path to the db file}
+
+\item{example}{boolean, set to FALSE by default, if TRUE it will
+copy the example db file and set the path pointing to it}
 }
 \value{
 Character, contains the path to the database.
@@ -19,8 +20,6 @@ Sets the path to the database file. This function must be run to allow operation
 of other functions which require saving to a database
 }
 \examples{
-\dontrun{
-SetDbPath("C:/Users/Adam/Documents/nhl.sqlite")
-}
+SetDbPath(example = TRUE)
 
 }

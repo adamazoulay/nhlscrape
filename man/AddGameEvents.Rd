@@ -17,7 +17,7 @@ allows for calculation of certain statistics based on time usage.
 Will not write if game already exists in the database!
 }
 \examples{
-SetDbPath()
+SetDbPath(example = TRUE)
 AddGameEvents(2019020001)
 
 }

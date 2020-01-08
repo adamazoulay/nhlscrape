@@ -24,7 +24,7 @@ be attacking zone on the left of the rink, and defending zone on the right of th
 Some anomalies due to how the NHL tracks positions
 }
 \examples{
-SetDbPath()
+SetDbPath(example = TRUE)
 GetHeatmapCoords(10, 2019020001, "'Shot', 'Goal'")
 
 }

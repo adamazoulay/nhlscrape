@@ -45,7 +45,7 @@ AddDb <- function(table, df) {
 #' Will not write if teams already exist in the database!
 #'
 #' @examples
-#' SetDbPath()
+#' SetDbPath(example = TRUE)
 #' AddAllTeamsDb()
 #'
 #' @export
@@ -73,7 +73,7 @@ AddAllTeamsDb <- function() {
 #' @param season Int, A year range you want to add
 #'
 #' @examples
-#' SetDbPath()
+#' SetDbPath(example = TRUE)
 #' AddTeamRoster(10, 20192020)
 #'
 #' @export
@@ -150,7 +150,7 @@ AddGameInfo <- function(game_data, game_id) {
 #' @param game_ids List, list of game_ids. Use GetGameIdRange to find
 #'
 #' @examples
-#' SetDbPath()
+#' SetDbPath(example = TRUE)
 #' AddGameEvents(2019020001)
 #'
 #' @export

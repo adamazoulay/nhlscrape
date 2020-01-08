@@ -16,6 +16,8 @@ list, contains all the data in the api call
 Send a call to the 'NHL' api and get the result back in a list
 }
 \examples{
+\donttest{
 GetApiJson("game/2019020001/feed/live")
+}
 
 }

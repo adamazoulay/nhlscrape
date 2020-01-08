@@ -25,7 +25,7 @@ the player id selected. The current stats returned are:
 - Fenwick
 }
 \examples{
-SetDbPath()
+SetDbPath(example = TRUE)
 AddGameEvents(2019020001)
 GetPlayerStats(8475166, 2019020001, 10)
 

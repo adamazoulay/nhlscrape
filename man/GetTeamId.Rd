@@ -16,7 +16,7 @@ Int, team ID number.
 Retrieve the team ID using the abbreviation, or full name of the team
 }
 \examples{
-SetDbPath()
+SetDbPath(example = TRUE)
 AddAllTeamsDb()
 GetTeamId("TOR")
 GetTeamId("tor")

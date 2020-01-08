@@ -17,7 +17,7 @@ Send a SQL query to the database. Retruns the SQL result as a data.frame. Useful
 seeing the structure of the database for construction of queries
 }
 \examples{
-SetDbPath()
+SetDbPath(example = TRUE)
 AddGameEvents(2019020001)
 QueryDb("SELECT * FROM events")
 QueryDb("SELECT result_description FROM events WHERE game_id=2019020001 AND player_id=8475166")

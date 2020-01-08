@@ -1,6 +1,6 @@
 context("Statistics equal")
 library(nhlscrape)
-SetDbPath()
+SetDbPath(example = TRUE)
 
 player_id <- 8475166
 game_id <- 2019020001

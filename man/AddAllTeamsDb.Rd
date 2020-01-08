@@ -11,7 +11,7 @@ Add all teams to the database. The teams will get stored in the database in the 
 Will not write if teams already exist in the database!
 }
 \examples{
-SetDbPath()
+SetDbPath(example = TRUE)
 AddAllTeamsDb()
 
 }

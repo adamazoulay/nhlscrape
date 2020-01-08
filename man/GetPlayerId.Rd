@@ -17,7 +17,7 @@ Gets a player id from their name. Will only work for players that were active in
 has already been added to the database
 }
 \examples{
-SetDbPath()
+SetDbPath(example = TRUE)
 AddGameEvents(2019020001)
 GetPlayerId("John Tavares")
 
