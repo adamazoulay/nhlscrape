@@ -247,13 +247,24 @@ CutRows <- function(rows, fun) {
 GetHeatmapCoords <- function(team_id, gids, events_list) {
   all_rows <- 0
   for (game_id in gids) {
-    query <- paste("SELECT home_team, away_team FROM game_info WHERE game_id=", game_id, sep="")
-    row <- QueryDb(query)
+    #query <- paste("SELECT home_team, away_team FROM game_info WHERE game_id=", game_id, sep="")
+    #row <- QueryDb(query)
 
-    if (GetTeamId(row$home_team) == team_id) {
-      team_home <- TRUE
+    #if (GetTeamId(row$home_team) == team_id) {
+    #  team_home <- TRUE
+    #} else {
+    #  team_home <- FALSE
+    #}
+
+    query <- paste("SELECT coordinates_x FROM events WHERE game_id=", game_id, " AND team_id=", team_id,
+                   " AND result_event='Shot' AND about_period=1", sep = "")
+    row <- QueryDb(query)
+    avg = mean(row$coordinates_x)
+
+    if (avg < 0) {
+      flip <- TRUE
     } else {
-      team_home <- FALSE
+      flip <- FALSE
     }
 
     query <- paste("SELECT DISTINCT coordinates_x,
@@ -269,10 +280,10 @@ GetHeatmapCoords <- function(team_id, gids, events_list) {
                    sep="")
     rows <- QueryDb(query)
     for (i in 1:nrow(rows)) {
-      if (team_home && rows[i,]$about_period %% 2 == 0) {
+      if (flip && rows[i,]$about_period %% 2 == 0) {
         # Flip second period
         rows[i,]$coordinates_x <- -1 * rows[i,]$coordinates_x
-      } else if (!team_home && rows[i,]$about_period %% 2 == 1) {
+      } else if (!flip && rows[i,]$about_period %% 2 == 1) {
         # Flip first and last period
         rows[i,]$coordinates_x <- -1 * rows[i,]$coordinates_x
       }
