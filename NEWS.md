@@ -1,3 +1,8 @@
+# Version 0.1.3
+
+* Added support for emergency players subbing into the game
+* Fixed outliers on heatmap by using average shot position to find offensive zone
+
 # Version 0.1.2
 
 * Updated HTML links in the description
