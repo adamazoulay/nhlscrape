@@ -106,6 +106,7 @@ AddRoster <- function(player_list, game_id) {
     player_row <- data.frame(player[[1]])[,1:7]
     player_row <- within(player_row, rm("primaryNumber"))
     player_row <- cbind("pk"=player_row$id, player_row)
+    player_row <- player_row[1:7] # This fixes the error if the player is missing a primary number
     player_df <- rbind(player_df, player_row)
 
     # Player toi
@@ -186,6 +187,8 @@ AddGameEvents <- function(game_ids) {
 
     home_abbr <- df$gameData$teams$home$triCode
     visitor_abbr <- df$gameData$teams$away$triCode
+    home_id <- GetTeamId(home_abbr)
+    visitor_id <- GetTeamId(visitor_abbr)
 
     # We need to get the html report of the game so we an tell who was on the ice on any given play
     # All we need to do is match the times to any time in the report and insert the players
@@ -216,6 +219,20 @@ AddGameEvents <- function(game_ids) {
           # Append player current team id for ident
           player_id_num <- paste("ID", row$player$id[[j]], sep="")
           player_team_id <- player_list[[player_id_num]]$person$currentTeam$id
+
+          # If the player_team_id is NULL, we have to check the rosters to see
+          # which one the player is on, and assign the id manually.
+          # Thanks, David
+          if (is.null(player_team_id)) {
+            if (is.null(home_roster[[player_id_num]])) {
+              # Then he plays for the away team
+              player_team_id <- visitor_id
+            } else {
+              # He plays for the home team
+              player_team_id <- home_id
+            }
+          }
+
           df <- cbind(df, "player_team_id"=player_team_id)
 
           # Get time stamp for player on ice identification
