@@ -1,7 +1,9 @@
 # nhlscrape
+
 A package for scraping the nhl API and HTML reports to build a database. Can be used to generate statistics from the information pulled.
 
 ## Usage
+
 To use this package:
 1. Install the nhlscrape package from GitHub or from CRAN (see below for details)
 2. Import 'nhlscraper' and run SetDbPath to set the location for the database file.
@@ -11,7 +13,8 @@ To use this package:
 6. Find a player_id using the GetPlayerId('player_name') function.
 7. Get player statistics using GetPlayerStats(). You can also manually query the database using QueryDb.
 
-Installing:
+
+#### Installing:
 
 From GitHub:
 ```
@@ -25,8 +28,8 @@ From CRAN:
 install.packages("nhlscrape")
 ```
 
+#### Usage example:
 
-Usage example:
 ```
 library(nhlscrape)
 
@@ -49,5 +52,6 @@ stats <- GetPlayerStats(player_id, gids, team_id)
 ```
 
 ## Example Shiny App
+
 You can see an example of the heatmap function being plotted in this demo shiny app at:
 https://aazoulay.shinyapps.io/nhl_shiny/
