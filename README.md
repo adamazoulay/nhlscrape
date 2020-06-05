@@ -12,6 +12,7 @@ To use this package:
 7. Get player statistics using GetPlayerStats(). You can also manually query the database using QueryDb.
 
 Installing:
+
 From GitHub:
 ```
 install.packages("devtools")
