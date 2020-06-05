@@ -92,9 +92,20 @@ EventsExists <- function() {
 #' @export
 GetTeamId <- function(team_name) {
   # Expect name to be either full name or abbreviation
-  team_id <- rbind(QueryDb(paste("SELECT * FROM teams WHERE name='", team_name, "'", sep="")),
-                   QueryDb(paste("SELECT * FROM teams WHERE UPPER(abbreviation)='", toupper(team_name), "'", sep=""))
-  )
+  
+  # Deal with edge cases here
+  # (é in MTL)
+  name_mtl <- "REPLACE(name, 'é', 'e')"
+  # (. in st. louis blues)
+  name_stl <- "REPLACE(name, '.', '')"
+  
+  # Select top 1 row from queries
+  team_id <- head(rbind(QueryDb(paste("SELECT * FROM teams WHERE UPPER(", name_mtl, ")='", toupper(team_name), "'", sep="")),
+                        QueryDb(paste("SELECT * FROM teams WHERE UPPER(", name_stl, ")='", toupper(team_name), "'", sep="")),
+                        QueryDb(paste("SELECT * FROM teams WHERE UPPER(name)='", toupper(team_name), "'", sep="")),
+                        QueryDb(paste("SELECT * FROM teams WHERE UPPER(abbreviation)='", toupper(team_name), "'", sep=""))),
+                  1)
+  
   if (nrow(team_id) == 0) {
     stop("Could not find team with name: ", team_name)
   }
