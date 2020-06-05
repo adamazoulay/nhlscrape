@@ -5,8 +5,8 @@ A package for scraping the nhl API and HTML reports to build a database. Can be 
 ## Usage
 
 To use this package:
-1. Install the nhlscrape package from GitHub or from CRAN (see below for details)
-2. Import 'nhlscraper' and run SetDbPath to set the location for the database file.
+1. Install the nhlscrape package from GitHub or from CRAN (see below for details).
+2. Import 'nhlscrape' and run SetDbPath to set the location for the database file.
 3. Use AddAllTeams() and the find team_id using the GetTeamId function.
 4. Find game_ids using the GetGameIdRange() function.
 5. Add game reports to the database using AddGameEvents().
